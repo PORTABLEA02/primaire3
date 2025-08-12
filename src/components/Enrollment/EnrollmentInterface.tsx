@@ -135,7 +135,7 @@ const EnrollmentInterface: React.FC = () => {
       dateOfBirth: '2013-05-15',
       gender: 'Masculin',
       parentName: 'M. Kwame Mensah',
-      parentPhone: '+223 70 11 22 33',
+      parentPhone: '+229 70 11 22 33',
       parentEmail: 'mensah.family@email.com',
       currentClass: 'CM1A'
     },
@@ -146,7 +146,7 @@ const EnrollmentInterface: React.FC = () => {
       dateOfBirth: '2014-08-22',
       gender: 'Féminin',
       parentName: 'Mme Fatoumata Traore',
-      parentPhone: '+223 75 44 55 66',
+      parentPhone: '+229 75 44 55 66',
       parentEmail: 'traore.aminata@email.com',
       currentClass: 'CE2A'
     },
@@ -157,7 +157,7 @@ const EnrollmentInterface: React.FC = () => {
       dateOfBirth: '2015-03-10',
       gender: 'Masculin',
       parentName: 'M. Sekou Kone',
-      parentPhone: '+223 65 77 88 99',
+      parentPhone: '+229 65 77 88 99',
       parentEmail: 'kone.ibrahim@email.com',
       currentClass: 'CE1B'
     }

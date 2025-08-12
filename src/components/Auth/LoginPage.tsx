@@ -219,7 +219,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500">
-            © 2024 EcoleTech. Système conçu pour l'éducation en Afrique de l'Ouest.
+            © 2024 EcoleTech. Système conçu pour l'éducation au Bénin.
           </p>
         </div>
 

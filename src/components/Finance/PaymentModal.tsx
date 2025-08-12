@@ -478,6 +478,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                     value={paymentData.mobileNumber || ''}
                     onChange={(e) => setPaymentData(prev => ({ ...prev, mobileNumber: e.target.value }))}
                     placeholder="+223 XX XX XX XX"
+                    placeholder="+229 XX XX XX XX"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.mobileNumber ? 'border-red-300' : 'border-gray-200'
                     }`}

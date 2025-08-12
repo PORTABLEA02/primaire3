@@ -37,7 +37,7 @@ export class TeacherService {
         .from('teachers')
         .select(`
           *,
-          user_profile:user_profiles(name, email),
+          user_profile:user_profiles(id, name, email, role, is_active),
           current_assignment:teacher_class_assignments!left(
             id,
             class:classes(name, level),
@@ -49,7 +49,14 @@ export class TeacherService {
         .order('last_name');
 
       if (error) throw error;
-      return data || [];
+      
+      // Mapper les données pour inclure les informations du profil utilisateur
+      return (data || []).map(teacher => ({
+        ...teacher,
+        hasUserAccount: !!teacher.user_profile_id,
+        userAccountActive: teacher.user_profile?.is_active || false,
+        userRole: teacher.user_profile?.role || null
+      }));
     } catch (error) {
       console.error('Erreur lors du chargement des enseignants:', error);
       throw error;
@@ -123,13 +130,135 @@ export class TeacherService {
         entityType: 'teacher',
         entityId: data.id,
         level: 'success',
-        details: `Nouvel enseignant créé: ${teacherData.firstName} ${teacherData.lastName}`
+        details: `Nouvel enseignant créé: ${teacherData.firstName} ${teacherData.lastName}${teacherData.userProfileId ? ' (avec compte utilisateur)' : ''}`
       });
 
       return data;
     } catch (error) {
       console.error('Erreur lors de la création de l\'enseignant:', error);
       throw error;
+    }
+  }
+
+  // Créer un enseignant avec compte utilisateur
+  static async createTeacherWithUserAccount(teacherData: TeacherData & {
+    password: string;
+    permissions: string[];
+  }) {
+    try {
+      // Créer d'abord le compte utilisateur
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: teacherData.email,
+        password: teacherData.password,
+        email_confirm: true,
+        user_metadata: {
+          name: `${teacherData.firstName} ${teacherData.lastName}`,
+          role: 'Enseignant',
+          school_id: teacherData.schoolId
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Mettre à jour les permissions du profil
+        await supabase
+          .from('user_profiles')
+          .update({
+            permissions: teacherData.permissions
+          })
+          .eq('id', authData.user.id);
+
+        // Créer l'enseignant avec le lien vers le profil utilisateur
+        const teacher = await this.createTeacher({
+          ...teacherData,
+          userProfileId: authData.user.id
+        });
+
+        return { teacher, userProfile: authData.user };
+      }
+
+      throw new Error('Erreur lors de la création du compte utilisateur');
+    } catch (error) {
+      console.error('Erreur lors de la création de l\'enseignant avec compte:', error);
+      throw error;
+    }
+  }
+
+  // Lier un enseignant existant à un compte utilisateur
+  static async linkTeacherToUserAccount(teacherId: string, userProfileId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .update({ user_profile_id: userProfileId })
+        .eq('id', teacherId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Logger l'activité
+      await ActivityLogService.logActivity({
+        schoolId: data.school_id,
+        action: 'LINK_TEACHER_USER_ACCOUNT',
+        entityType: 'teacher',
+        entityId: teacherId,
+        level: 'info',
+        details: 'Enseignant lié à un compte utilisateur'
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la liaison:', error);
+      throw error;
+    }
+  }
+
+  // Délier un enseignant d'un compte utilisateur
+  static async unlinkTeacherFromUserAccount(teacherId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .update({ user_profile_id: null })
+        .eq('id', teacherId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Logger l'activité
+      await ActivityLogService.logActivity({
+        schoolId: data.school_id,
+        action: 'UNLINK_TEACHER_USER_ACCOUNT',
+        entityType: 'teacher',
+        entityId: teacherId,
+        level: 'warning',
+        details: 'Enseignant délié du compte utilisateur'
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la déliaison:', error);
+      throw error;
+    }
+  }
+
+  // Obtenir les enseignants sans compte utilisateur
+  static async getTeachersWithoutUserAccount(schoolId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('school_id', schoolId)
+        .is('user_profile_id', null)
+        .eq('status', 'Actif')
+        .order('last_name');
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Erreur lors du chargement des enseignants sans compte:', error);
+      return [];
     }
   }
 

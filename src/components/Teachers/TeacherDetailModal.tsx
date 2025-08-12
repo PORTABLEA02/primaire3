@@ -433,6 +433,44 @@ const TeacherDetailModal: React.FC<TeacherDetailModalProps> = ({
                       </div>
                     )}
                   </div>
+                  {/* Compte utilisateur */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Compte Utilisateur</h3>
+                    {teacher.user_profile_id ? (
+                      <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <div>
+                            <p className="font-medium text-green-800">Compte système actif</p>
+                            <p className="text-sm text-green-600">
+                              Rôle: {teacher.user_profile?.role || 'Enseignant'} • 
+                              Statut: {teacher.user_profile?.is_active ? 'Actif' : 'Inactif'}
+                            </p>
+                            <p className="text-xs text-green-500 mt-1">
+                              L'enseignant peut se connecter pour saisir des notes et consulter ses classes
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <AlertCircle className="h-5 w-5 text-gray-600" />
+                            <div>
+                              <p className="font-medium text-gray-800">Aucun compte système</p>
+                              <p className="text-sm text-gray-600">
+                                L'enseignant ne peut pas se connecter au système
+                              </p>
+                            </div>
+                          </div>
+                          <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+                            Créer Compte
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -37,6 +37,7 @@ interface Teacher {
   hire_date: string;
   status: 'Actif' | 'Inactif' | 'Congé';
   performance_rating: number;
+  hasUserAccount?: boolean;
   current_assignment?: {
     class: {
       name: string;
@@ -421,6 +422,12 @@ const TeacherManagement: React.FC = () => {
                                 <Mail className="h-3 w-3 text-gray-400" />
                                 <span className="text-sm text-gray-600">{teacher.email}</span>
                               </div>
+                              {teacher.hasUserAccount && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-blue-600">🔐</span>
+                                  <span className="text-xs text-blue-600">Accès système</span>
+                                </div>
+                              )}
                             </div>
                           </td>
                           

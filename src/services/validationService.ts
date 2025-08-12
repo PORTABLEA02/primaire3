@@ -72,7 +72,7 @@ export class ValidationService {
     }
 
     if (teacherData.phone && !this.isValidPhoneNumber(teacherData.phone)) {
-      errors.phone = 'Format de téléphone invalide';
+      errors.phone = teacherData.phone;
     }
 
     if (teacherData.salary && (teacherData.salary < 50000 || teacherData.salary > 1000000)) {

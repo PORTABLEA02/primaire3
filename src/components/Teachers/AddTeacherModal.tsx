@@ -463,7 +463,7 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                 <option value="">Aucune classe (Enseignant disponible)</option>
                 {availableClassesData.map(cls => (
                   <option key={cls.id} value={cls.name}>
-                    {cls.name} ({cls.level}) - {cls.capacity - cls.current_students} places libres
+                    {cls.name}
                   </option>
                 ))}
               </select>

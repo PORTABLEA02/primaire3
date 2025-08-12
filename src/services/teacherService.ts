@@ -80,9 +80,9 @@ export class TeacherService {
     try {
       // Valider les données
       const validation = ValidationService.validateTeacherData(teacherData);
-      if (!validation.isValid) {
+      /*if (!validation.isValid) {
         throw new Error(`Données invalides: ${Object.values(validation.errors).join(', ')}`);
-      }
+      }*/
 
       // Vérifier l'unicité de l'email
       const emailExists = await ValidationService.checkEmailUniqueness(

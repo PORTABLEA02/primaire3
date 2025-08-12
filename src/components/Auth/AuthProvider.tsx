@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userSchool, setUserSchool] = useState<School | null>(null);
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -323,6 +324,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userSchool,
     currentAcademicYear,
     isAuthenticated,
+    loading,
     login,
     logout,
     hasPermission,

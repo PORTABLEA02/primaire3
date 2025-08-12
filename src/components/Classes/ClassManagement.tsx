@@ -46,6 +46,33 @@ interface TeacherAssignment {
   is_active: boolean;
 }
 
+// Helper functions - moved before component to avoid hoisting issues
+const getLevelColor = (level: string) => {
+  const colors: Record<string, string> = {
+    'Maternelle': 'purple',
+    'CI': 'blue',
+    'CP': 'green',
+    'CE1': 'yellow',
+    'CE2': 'orange',
+    'CM1': 'red',
+    'CM2': 'indigo'
+  };
+  return colors[level] || 'blue';
+};
+
+const getColorClasses = (color: string) => {
+  const colorMap: Record<string, string> = {
+    purple: 'bg-purple-50 text-purple-700',
+    blue: 'bg-blue-50 text-blue-700',
+    green: 'bg-green-50 text-green-700',
+    yellow: 'bg-yellow-50 text-yellow-700',
+    orange: 'bg-orange-50 text-orange-700',
+    red: 'bg-red-50 text-red-700',
+    indigo: 'bg-indigo-50 text-indigo-700'
+  };
+  return colorMap[color] || colorMap.blue;
+};
+
 const ClassManagement: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
   const [classes, setClasses] = useState<ClassData[]>([]);
@@ -108,32 +135,6 @@ const ClassManagement: React.FC = () => {
       ...data
     }));
   }, [classes]);
-
-  const getLevelColor = (level: string) => {
-    const colors: Record<string, string> = {
-      'Maternelle': 'purple',
-      'CI': 'blue',
-      'CP': 'green',
-      'CE1': 'yellow',
-      'CE2': 'orange',
-      'CM1': 'red',
-      'CM2': 'indigo'
-    };
-    return colors[level] || 'blue';
-  };
-
-  const getColorClasses = (color: string) => {
-    const colorMap: Record<string, string> = {
-      purple: 'bg-purple-50 text-purple-700',
-      blue: 'bg-blue-50 text-blue-700',
-      green: 'bg-green-50 text-green-700',
-      yellow: 'bg-yellow-50 text-yellow-700',
-      orange: 'bg-orange-50 text-orange-700',
-      red: 'bg-red-50 text-red-700',
-      indigo: 'bg-indigo-50 text-indigo-700'
-    };
-    return colorMap[color] || colorMap.blue;
-  };
 
   const handleAddClass = async (classData: any) => {
     if (!userSchool || !currentAcademicYear) return;

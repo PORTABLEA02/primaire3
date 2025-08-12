@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Users, BookOpen, User, MapPin, Calendar, Edit, Save, Phone, Mail, Award, Clock, TrendingUp, RefreshCw } from 'lucide-react';
 import { ClassService } from '../../services/classService';
 import { useAuth } from '../Auth/AuthProvider';

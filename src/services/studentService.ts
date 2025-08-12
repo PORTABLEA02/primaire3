@@ -534,8 +534,7 @@ export class StudentService {
           )
         `)
         .eq('school_id', schoolId)
-        .eq('academic_year_id', academicYearId)
-        .filter('current_students.lt.capacity');
+        .eq('academic_year_id', academicYearId);
 
       if (error) throw error;
       return data || [];

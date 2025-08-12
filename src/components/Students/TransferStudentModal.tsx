@@ -52,7 +52,9 @@ const TransferStudentModal: React.FC<TransferStudentModalProps> = ({
       );
       
       // Exclure la classe actuelle de l'élève
-      const filteredClasses = classes.filter(cls => cls.name !== student.class_name);
+      const filteredClasses = classes.filter(cls => 
+        cls.name !== student.class_name && cls.current_students < cls.capacity
+      );
       setAvailableClasses(filteredClasses);
     } catch (error) {
       console.error('Erreur lors du chargement des classes:', error);

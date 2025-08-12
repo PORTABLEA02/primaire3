@@ -110,7 +110,9 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
         userSchool.id,
         currentAcademicYear.id
       );
-      setAvailableClasses(classes);
+      // Filter classes with available spots on the client side
+      const availableClasses = classes.filter(cls => cls.current_students < cls.capacity);
+      setAvailableClasses(availableClasses);
     } catch (error) {
       console.error('Erreur lors du chargement des classes:', error);
     }

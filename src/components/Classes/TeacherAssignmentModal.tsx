@@ -62,6 +62,7 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
     if (!userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
 
       const [teachers, allClasses, assignments] = await Promise.all([
         TeacherService.getAvailableTeachers(userSchool.id, currentAcademicYear.id),
@@ -72,15 +73,17 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
       setAvailableTeachers(teachers);
       
       // Séparer les classes avec et sans enseignant
-      const withoutTeacher = allClasses.filter(c => !c.teacher_assignment?.teacher);
-      const withTeacher = allClasses.filter(c => c.teacher_assignment?.teacher);
+      const withoutTeacher = allClasses.filter(c => !c.teacher_assignment || c.teacher_assignment.length === 0);
+      const withTeacher = allClasses.filter(c => c.teacher_assignment && c.teacher_assignment.length > 0);
       
       setClassesWithoutTeacher(withoutTeacher);
       setAssignedClasses(withTeacher);
 
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
+      setError(error.message || 'Erreur lors du chargement des données');
     } finally {
+      setLoading(false);
     }
   };
 
@@ -384,7 +387,7 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
                   );
                 })}
                 
-                {classesWithoutTeacher.length === 0 && !loading && (
+                {classesWithoutTeacher.length === 0 && (
                   <div className="text-center py-8">
                     <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                     <p className="text-green-600 font-medium">Toutes les classes ont un enseignant !</p>
@@ -404,7 +407,7 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
                 <div className="text-center">
                   {selectedTeacher ? (
                     <div className="p-4 bg-blue-100 rounded-lg">
-                      <User className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                          ? `${classInfo.teacher_assignment[0]?.teacher?.first_name} ${classInfo.teacher_assignment[0]?.teacher?.last_name}`
                       <p className="font-medium text-blue-800">
                         {selectedTeacher.first_name} {selectedTeacher.last_name}
                       </p>

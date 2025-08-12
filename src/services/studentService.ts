@@ -535,7 +535,7 @@ export class StudentService {
         `)
         .eq('school_id', schoolId)
         .eq('academic_year_id', academicYearId)
-        .lt('current_students', supabase.raw('capacity'));
+        .filter('current_students.lt.capacity');
 
       if (error) throw error;
       return data || [];

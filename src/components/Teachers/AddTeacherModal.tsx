@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { X, UserCheck, User, Mail, Phone, MapPin, Calendar, Award, BookOpen } from 'lucide-react';
+import { useAuth } from '../Auth/AuthProvider';
+import { ClassService } from '../../services/classService';
 
 interface AddTeacherModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTeacher: (teacherData: NewTeacherData) => void;
-  availableClasses: string[];
+  availableClasses?: string[];
 }
 
 interface NewTeacherData {
@@ -28,8 +30,12 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
   isOpen,
   onClose,
   onAddTeacher,
-  availableClasses
+  availableClasses = []
 }) => {
+  const { userSchool, currentAcademicYear } = useAuth();
+  const [availableClassesData, setAvailableClassesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState<NewTeacherData>({
     firstName: '',
     lastName: '',
@@ -47,6 +53,30 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Charger les classes disponibles
+  React.useEffect(() => {
+    if (isOpen && userSchool && currentAcademicYear) {
+      loadAvailableClasses();
+    }
+  }, [isOpen, userSchool, currentAcademicYear]);
+
+  const loadAvailableClasses = async () => {
+    if (!userSchool || !currentAcademicYear) return;
+
+    try {
+      setLoading(true);
+      const classes = await ClassService.getClasses(userSchool.id, currentAcademicYear.id);
+      
+      // Filtrer les classes sans enseignant
+      const classesWithoutTeacher = classes.filter(cls => !cls.teacher_assignment || cls.teacher_assignment.length === 0);
+      setAvailableClassesData(classesWithoutTeacher);
+    } catch (error) {
+      console.error('Erreur lors du chargement des classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const qualifications = [
     'CAP Petite Enfance',
@@ -169,15 +199,9 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
         subjects: []
       }));
     } else {
-      // Déterminer le niveau à partir du nom de la classe
-      let level = '';
-      if (className.includes('Maternelle')) level = 'Maternelle';
-      else if (className.includes('CI')) level = 'CI';
-      else if (className.includes('CP')) level = 'CP';
-      else if (className.includes('CE1')) level = 'CE1';
-      else if (className.includes('CE2')) level = 'CE2';
-      else if (className.includes('CM1')) level = 'CM1';
-      else if (className.includes('CM2')) level = 'CM2';
+      // Trouver la classe sélectionnée
+      const selectedClass = availableClassesData.find(cls => cls.name === className);
+      const level = selectedClass?.level || '';
 
       const subjects = subjectsByLevel[level as keyof typeof subjectsByLevel] || [];
 
@@ -433,13 +457,26 @@ const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
               <select
                 value={formData.assignedClass || ''}
                 onChange={(e) => handleClassAssignment(e.target.value)}
+                disabled={loading}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Aucune classe (Enseignant disponible)</option>
-                {availableClasses.map(className => (
-                  <option key={className} value={className}>{className}</option>
+                {availableClassesData.map(cls => (
+                  <option key={cls.id} value={cls.name}>
+                    {cls.name} ({cls.level}) - {cls.capacity - cls.current_students} places libres
+                  </option>
                 ))}
               </select>
+              
+              {loading && (
+                <p className="text-sm text-gray-500 mt-1">Chargement des classes disponibles...</p>
+              )}
+              
+              {!loading && availableClassesData.length === 0 && (
+                <p className="text-sm text-yellow-600 mt-1">
+                  Aucune classe disponible - Toutes les classes ont déjà un enseignant assigné
+                </p>
+              )}
             </div>
 
             {formData.assignedClass && formData.subjects.length > 0 && (

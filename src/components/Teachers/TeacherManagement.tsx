@@ -59,7 +59,6 @@ const TeacherManagement: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'absences' | 'performance'>('list');
-  const [dataLoaded, setDataLoaded] = useState(false);
   const { currentAcademicYear } = useAcademicYear();
   const [teachers, setTeachers] = useState<Teacher[]>([
 
@@ -154,13 +153,6 @@ const TeacherManagement: React.FC = () => {
       performanceRating: 4.7
     }
   ]);
-
-  // Marquer les données comme chargées après le premier rendu
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   // Classes disponibles (sans enseignant assigné)
   const availableClasses = [

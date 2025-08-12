@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userSchool, setUserSchool] = useState<School | null>(null);
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,7 +66,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setError('Votre session a expiré. Veuillez vous reconnecter.');
           await handleSignOut();
         }
-        setLoading(false);
       }
     );
 
@@ -122,12 +120,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (session?.user) {
         await loadUserProfile(session.user);
       } else {
-        setLoading(false);
       }
     } catch (error) {
       console.error('Erreur de vérification de session:', error);
       setError('Erreur de vérification de session');
-      setLoading(false);
     }
   };
 
@@ -293,7 +289,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(error.message || 'Erreur de connexion');
       return false;
     } finally {
-      setLoading(false);
     }
   };
 
@@ -313,7 +308,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Erreur lors de la déconnexion:', error);
       setError(error.message || 'Erreur de déconnexion');
     } finally {
-      setLoading(false);
     }
   };
 
@@ -329,7 +323,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userSchool,
     currentAcademicYear,
     isAuthenticated,
-    loading,
     login,
     logout,
     hasPermission,

@@ -51,8 +51,6 @@ const ClassManagement: React.FC = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignment[]>([]);
   const [availableTeachers, setAvailableTeachers] = useState<any[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Modals state
@@ -74,12 +72,6 @@ const ClassManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
-      // Utiliser initialLoading seulement au premier chargement
-      if (classes.length === 0) {
-        setInitialLoading(true);
-      } else {
-        setRefreshing(true);
-      }
       setError(null);
 
       const [classesData, assignmentsData, teachersData] = await Promise.all([
@@ -96,23 +88,7 @@ const ClassManagement: React.FC = () => {
       console.error('Erreur lors du chargement des données:', error);
       setError(error.message || 'Erreur lors du chargement des données');
     } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
     }
-  };
-
-  // Helper function to get color for each level
-  const getLevelColor = (level: string) => {
-    const colors: Record<string, string> = {
-      'Maternelle': 'purple',
-      'CI': 'blue',
-      'CP': 'green',
-      'CE1': 'yellow',
-      'CE2': 'orange',
-      'CM1': 'red',
-      'CM2': 'indigo'
-    };
-    return colors[level] || 'blue';
   };
 
   // Calculer les statistiques par niveau
@@ -132,6 +108,19 @@ const ClassManagement: React.FC = () => {
       ...data
     }));
   }, [classes]);
+
+  const getLevelColor = (level: string) => {
+    const colors: Record<string, string> = {
+      'Maternelle': 'purple',
+      'CI': 'blue',
+      'CP': 'green',
+      'CE1': 'yellow',
+      'CE2': 'orange',
+      'CM1': 'red',
+      'CM2': 'indigo'
+    };
+    return colors[level] || 'blue';
+  };
 
   const getColorClasses = (color: string) => {
     const colorMap: Record<string, string> = {
@@ -280,17 +269,6 @@ const ClassManagement: React.FC = () => {
     }
   };
 
-  if (initialLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des classes...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -322,10 +300,9 @@ const ClassManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button 
             onClick={loadData}
-            disabled={refreshing}
             className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-4 w-4" />
             <span>Actualiser</span>
           </button>
           

@@ -37,8 +37,6 @@ interface Student {
 const StudentManagement: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('all');
@@ -62,11 +60,6 @@ const StudentManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
-      if (students.length === 0) {
-        setInitialLoading(true);
-      } else {
-        setRefreshing(true);
-      }
       setError(null);
       const data = await StudentService.getStudents(userSchool.id, currentAcademicYear.id);
       setStudents(data);
@@ -74,8 +67,6 @@ const StudentManagement: React.FC = () => {
       console.error('Erreur lors du chargement des élèves:', error);
       setError(error.message || 'Erreur lors du chargement des élèves');
     } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -205,17 +196,6 @@ const StudentManagement: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  if (initialLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Chargement des élèves...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -271,7 +251,6 @@ const StudentManagement: React.FC = () => {
         availableClasses={uniqueClasses}
         onRefresh={loadStudents}
         onExport={exportStudents}
-        loading={refreshing}
       />
 
       {/* Students Table */}
@@ -281,7 +260,6 @@ const StudentManagement: React.FC = () => {
         onEditStudent={handleViewStudent}
         onTransferStudent={handleTransferStudent}
         onWithdrawStudent={handleWithdrawStudent}
-        loading={false}
       />
 
       {/* Modals */}

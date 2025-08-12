@@ -21,7 +21,6 @@ import EnrollmentInterface from './components/Enrollment/EnrollmentInterface';
 const AppContent: React.FC = () => {
   const { isAuthenticated, login, error, refreshSession, logout } = useAuth();
   const [activeModule, setActiveModule] = useState('dashboard');
-  const [moduleData, setModuleData] = useState<Record<string, boolean>>({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -51,16 +50,6 @@ const AppContent: React.FC = () => {
 
   const handleLogin = async (credentials: { email: string; password: string; rememberMe: boolean }) => {
     return await login(credentials.email, credentials.password, credentials.rememberMe);
-  };
-
-  // Marquer un module comme ayant des données chargées
-  const markModuleAsLoaded = (module: string) => {
-    setModuleData(prev => ({ ...prev, [module]: true }));
-  };
-
-  // Vérifier si un module a déjà des données chargées
-  const isModuleLoaded = (module: string) => {
-    return moduleData[module] || false;
   };
 
   if (!isAuthenticated) {

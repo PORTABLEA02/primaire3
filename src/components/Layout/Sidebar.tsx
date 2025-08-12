@@ -106,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => handleModuleChange(item.id)}
+              onClick={() => onModuleChange(item.id)}
               className={`w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
                 isActive ? 'bg-blue-50 border-r-4 border-blue-600 text-blue-600' : 'text-gray-700'
               }`}

@@ -18,7 +18,6 @@ interface Payment {
 
 const FinanceManagement: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const { currentAcademicYear } = useAcademicYear();
   const [recentPayments, setRecentPayments] = useState<Payment[]>([
     {
@@ -55,13 +54,6 @@ const FinanceManagement: React.FC = () => {
       month: 'Acompte scolarité'
     }
   ]);
-
-  // Marquer les données comme chargées
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   const paymentMethods = [
     { name: 'Espèces', amount: '1,250,000', percentage: 45, color: 'green', icon: DollarSign },

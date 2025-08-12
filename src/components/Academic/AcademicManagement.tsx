@@ -8,17 +8,9 @@ const AcademicManagement: React.FC = () => {
   const [selectedClass, setSelectedClass] = React.useState('');
   const [selectedSubject, setSelectedSubject] = React.useState('');
   const [selectedPeriod, setSelectedPeriod] = React.useState('Trimestre 1');
-  const [dataLoaded, setDataLoaded] = React.useState(false);
   const { currentAcademicYear } = useAcademicYear();
   const [showGradeEntryModal, setShowGradeEntryModal] = React.useState(false);
   const [showCalculateAveragesModal, setShowCalculateAveragesModal] = React.useState(false);
-
-  // Marquer les données comme chargées
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   const subjects = [
     { name: 'Français', classes: 12, notes: 456, average: 12.8 },

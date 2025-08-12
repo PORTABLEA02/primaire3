@@ -47,7 +47,6 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
   const [availableTeachers, setAvailableTeachers] = useState<AvailableTeacher[]>([]);
   const [classesWithoutTeacher, setClassesWithoutTeacher] = useState<ClassWithoutTeacher[]>([]);
   const [assignedClasses, setAssignedClasses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState<AvailableTeacher | null>(null);
   const [selectedClass, setSelectedClass] = useState<ClassWithoutTeacher | null>(null);
@@ -63,7 +62,6 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
     if (!userSchool || !currentAcademicYear) return;
 
     try {
-      setLoading(true);
 
       const [teachers, allClasses, assignments] = await Promise.all([
         TeacherService.getAvailableTeachers(userSchool.id, currentAcademicYear.id),
@@ -83,7 +81,6 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
     } finally {
-      setLoading(false);
     }
   };
 
@@ -247,13 +244,7 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
               </h3>
               
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {loading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Chargement...</p>
-                  </div>
-                ) : (
-                  availableTeachers.map((teacher) => (
+                {availableTeachers.map((teacher) => (
                     <div
                       key={teacher.id}
                       onClick={() => setSelectedTeacher(teacher)}
@@ -300,10 +291,9 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
+                  ))}
                 
-                {availableTeachers.length === 0 && !loading && (
+                {availableTeachers.length === 0 && (
                   <div className="text-center py-8">
                     <User className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">Aucun enseignant disponible</p>

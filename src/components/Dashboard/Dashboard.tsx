@@ -7,14 +7,6 @@ import AcademicOverview from './AcademicOverview';
 
 const Dashboard: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
-  const [dataLoaded, setDataLoaded] = useState(false);
-
-  // Marquer les données comme chargées
-  useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   return (
     <div className="space-y-6">

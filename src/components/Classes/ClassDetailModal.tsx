@@ -36,7 +36,6 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   const [editData, setEditData] = useState(classData);
   const [classStudents, setClassStudents] = useState<any[]>([]);
   const [classStats, setClassStats] = useState<any>(null);
-  const [loadingClassData, setLoadingClassData] = useState(false);
 
   // Charger les données de la classe
   useEffect(() => {
@@ -49,7 +48,6 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     if (!classData || !userSchool || !currentAcademicYear) return;
 
     try {
-      setLoadingClassData(true);
 
       const [students, stats] = await Promise.all([
         ClassService.getClassDetails(classData.id, currentAcademicYear.id),
@@ -62,7 +60,6 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     } catch (error) {
       console.error('Erreur lors du chargement des données de la classe:', error);
     } finally {
-      setLoadingClassData(false);
     }
   };
 
@@ -308,8 +305,8 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <RefreshCw className={`h-6 w-6 text-gray-400 mx-auto mb-2 ${loadingClassData ? 'animate-spin' : ''}`} />
-                      <p className="text-gray-500">Chargement...</p>
+                      <BookOpen className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500">Aucune donnée disponible</p>
                     </div>
                   )}
                 </div>
@@ -342,12 +339,6 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 </button>
               </div>
 
-              {loading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className={`h-8 w-8 text-blue-600 mx-auto mb-4 ${loadingClassData ? 'animate-spin' : ''}`} />
-                  <p className="text-gray-600">Chargement des élèves...</p>
-                </div>
-              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -423,9 +414,8 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   </tbody>
                 </table>
               </div>
-              )}
 
-              {!loading && classStudents.length === 0 && (
+              {classStudents.length === 0 && (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500">Aucun élève inscrit dans cette classe</p>

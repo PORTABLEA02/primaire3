@@ -41,7 +41,6 @@ interface ExistingStudent {
 
 const EnrollmentInterface: React.FC = () => {
   const [step, setStep] = useState<'student' | 'class' | 'confirmation'>('student');
-  const [dataLoaded, setDataLoaded] = useState(false);
   const { currentAcademicYear } = useAcademicYear();
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
     firstName: '',
@@ -59,13 +58,6 @@ const EnrollmentInterface: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<ExistingStudent | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Marquer les données comme chargées
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   // Classes disponibles avec places libres
   const availableClasses: ClassOption[] = [

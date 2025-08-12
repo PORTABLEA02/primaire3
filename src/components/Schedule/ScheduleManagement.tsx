@@ -18,7 +18,6 @@ const ScheduleManagement: React.FC = () => {
   const [selectedWeek, setSelectedWeek] = useState('current');
   const [viewMode, setViewMode] = useState<'week' | 'class' | 'teacher'>('week');
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
 
     {
@@ -62,13 +61,6 @@ const ScheduleManagement: React.FC = () => {
       day: 'Mardi'
     }
   ]);
-
-  // Marquer les données comme chargées
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
   const timeSlotHours = [

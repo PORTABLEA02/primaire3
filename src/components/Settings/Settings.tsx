@@ -16,15 +16,7 @@ import { useAcademicYear } from '../../contexts/AcademicYearContext';
 
 const Settings: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const { currentAcademicYear } = useAcademicYear();
-
-  // Marquer les données comme chargées
-  React.useEffect(() => {
-    if (!dataLoaded) {
-      setDataLoaded(true);
-    }
-  }, []);
 
   const settingsSections = [
     {

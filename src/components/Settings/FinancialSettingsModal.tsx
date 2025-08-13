@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, CreditCard, Smartphone, Building, Plus, Trash2, Edit, Save, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAuth } from '../Auth/AuthProvider';
+import { supabase } from '../../lib/supabase';
 import { PaymentService } from '../../services/paymentService';
 import { ActivityLogService } from '../../services/activityLogService';
 
@@ -52,7 +53,7 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
   const [newFeeType, setNewFeeType] = useState({
     name: '',
     amount: 0,
-    level: 'Tous',
+    level: 'Maternelle',
     is_mandatory: true,
     description: ''
   });
@@ -66,76 +67,7 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
   });
 
   // Niveaux scolaires du Bénin
-  const levels = ['Tous', 'Maternelle', 'CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];
-
-  // Frais standards du système éducatif béninois
-  const standardFees = [
-    { name: 'Frais de scolarité Maternelle', amount: 25000, level: 'Maternelle', description: 'Frais annuels de scolarité pour la maternelle' },
-    { name: 'Frais de scolarité CI', amount: 30000, level: 'CI', description: 'Frais annuels de scolarité pour le CI' },
-    { name: 'Frais de scolarité CP', amount: 30000, level: 'CP', description: 'Frais annuels de scolarité pour le CP' },
-    { name: 'Frais de scolarité CE1', amount: 35000, level: 'CE1', description: 'Frais annuels de scolarité pour le CE1' },
-    { name: 'Frais de scolarité CE2', amount: 35000, level: 'CE2', description: 'Frais annuels de scolarité pour le CE2' },
-    { name: 'Frais de scolarité CM1', amount: 40000, level: 'CM1', description: 'Frais annuels de scolarité pour le CM1' },
-    { name: 'Frais de scolarité CM2', amount: 40000, level: 'CM2', description: 'Frais annuels de scolarité pour le CM2' },
-    { name: 'Frais d\'inscription', amount: 5000, level: 'Tous', description: 'Frais d\'inscription annuelle' },
-    { name: 'Frais de cantine', amount: 15000, level: 'Tous', description: 'Frais de restauration scolaire (optionnel)' },
-    { name: 'Frais de transport', amount: 10000, level: 'Tous', description: 'Transport scolaire (optionnel)' },
-    { name: 'Frais de fournitures', amount: 8000, level: 'Tous', description: 'Fournitures scolaires de base' }
-  ];
-
-  // Méthodes de paiement courantes au Bénin
-  const standardPaymentMethods = [
-    {
-      name: 'Espèces',
-      type: 'cash' as const,
-      is_enabled: true,
-      fees_percentage: 0,
-      config: {}
-    },
-    {
-      name: 'MTN Mobile Money',
-      type: 'mobile' as const,
-      is_enabled: true,
-      fees_percentage: 1.0,
-      config: {
-        provider: 'MTN',
-        merchantCode: '',
-        apiKey: ''
-      }
-    },
-    {
-      name: 'Moov Money',
-      type: 'mobile' as const,
-      is_enabled: true,
-      fees_percentage: 1.0,
-      config: {
-        provider: 'Moov',
-        merchantId: '',
-        secretKey: ''
-      }
-    },
-    {
-      name: 'Virement Bancaire',
-      type: 'bank' as const,
-      is_enabled: true,
-      fees_percentage: 0.5,
-      config: {
-        bankAccount: '',
-        bankName: 'Banque de l\'Habitat du Bénin',
-        rib: ''
-      }
-    },
-    {
-      name: 'Chèque',
-      type: 'bank' as const,
-      is_enabled: false,
-      fees_percentage: 0,
-      config: {
-        payableTo: '',
-        bankName: ''
-      }
-    }
-  ];
+  const levels = ['Maternelle', 'CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'];
 
   // Charger les données au montage
   useEffect(() => {
@@ -211,7 +143,7 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
       setNewFeeType({
         name: '',
         amount: 0,
-        level: 'Tous',
+        level: 'Maternelle',
         is_mandatory: true,
         description: ''
       });
@@ -377,48 +309,6 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
     }
   };
 
-  const initializeStandardData = async () => {
-    if (!userSchool || !confirm('Cela va créer les frais et méthodes de paiement standards pour le Bénin. Continuer ?')) return;
-
-    try {
-      setLoading(true);
-
-      // Créer les types de frais standards
-      for (const fee of standardFees) {
-        await supabase
-          .from('fee_types')
-          .insert({
-            school_id: userSchool.id,
-            name: fee.name,
-            amount: fee.amount,
-            level: fee.level,
-            is_mandatory: fee.level !== 'Tous' || fee.name.includes('inscription'),
-            description: fee.description
-          });
-      }
-
-      // Créer les méthodes de paiement standards
-      for (const method of standardPaymentMethods) {
-        await PaymentService.createPaymentMethod({
-          schoolId: userSchool.id,
-          name: method.name,
-          type: method.type,
-          feesPercentage: method.fees_percentage,
-          config: method.config
-        });
-      }
-
-      await loadFinancialSettings();
-      alert('Configuration standard créée avec succès !');
-
-    } catch (error: any) {
-      console.error('Erreur lors de l\'initialisation:', error);
-      alert(`Erreur: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getPaymentMethodIcon = (type: string) => {
     switch (type) {
       case 'cash': return DollarSign;
@@ -505,25 +395,6 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
               </div>
             </div>
 
-            {feeTypes.length === 0 && paymentMethods.length === 0 && (
-              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-yellow-800">Configuration Initiale</h4>
-                    <p className="text-sm text-yellow-700">
-                      Aucune configuration trouvée. Voulez-vous initialiser avec les paramètres standards du Bénin ?
-                    </p>
-                  </div>
-                  <button
-                    onClick={initializeStandardData}
-                    disabled={loading}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-                  >
-                    Initialiser
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Types de frais */}

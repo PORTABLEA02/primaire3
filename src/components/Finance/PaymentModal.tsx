@@ -1,99 +1,49 @@
 import React, { useState } from 'react';
 import { X, DollarSign, User, Calendar, CreditCard, Smartphone, Building, Search, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAcademicYear } from '../../contexts/AcademicYearContext';
+import { useAuth } from '../Auth/AuthProvider';
+import { StudentService } from '../../services/studentService';
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddPayment: (paymentData: PaymentData) => void;
-}
-
-interface Student {
-  id: string;
-  name: string;
-  class: string;
-  level: string;
-  outstandingAmount: number;
-  lastPayment?: string;
-  parentPhone?: string;
-}
-
-interface PaymentData {
-  studentId: string;
-  studentName: string;
-  studentClass: string;
-  amount: number;
-  method: 'Espèces' | 'Mobile Money' | 'Virement Bancaire';
-  type: 'Inscription' | 'Mensualité' | 'Cantine' | 'Transport' | 'Fournitures' | 'Autre';
-  month?: string;
-  reference?: string;
-  mobileNumber?: string;
-  bankDetails?: string;
-  notes?: string;
-  date: string;
+  onAddPayment: (paymentData: any) => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayment }) => {
+  const { userSchool, currentAcademicYear } = useAuth();
   const [step, setStep] = useState<'student' | 'payment' | 'confirmation'>('student');
   const [searchTerm, setSearchTerm] = useState('');
-  const { currentAcademicYear } = useAcademicYear();
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [paymentData, setPaymentData] = useState<Partial<PaymentData>>({
     amount: 0,
-    method: 'Espèces',
     type: 'Mensualité',
+    method: 'Espèces',
     date: new Date().toISOString().split('T')[0]
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Données d'exemple des élèves
-  const students: Student[] = [
-    {
-      id: '1',
-      name: 'Kofi Mensah',
-      class: 'CM2A',
-      level: 'CM2',
-      outstandingAmount: 45000,
-      lastPayment: '2024-09-15',
-      parentPhone: '+223 70 11 22 33'
-    },
-    {
-      id: '2',
-      name: 'Fatima Diallo',
-      class: 'CE1B',
-      level: 'CE1',
-      outstandingAmount: 40000,
-      lastPayment: '2024-10-01',
-      parentPhone: '+223 75 44 55 66'
-    },
-    {
-      id: '3',
-      name: 'Amadou Kone',
-      class: 'CP2',
-      level: 'CP',
-      outstandingAmount: 35000,
-      lastPayment: '2024-08-30',
-      parentPhone: '+223 65 77 88 99'
-    },
-    {
-      id: '4',
-      name: 'Aissata Ba',
-      class: 'CE2A',
-      level: 'CE2',
-      outstandingAmount: 42000,
-      lastPayment: '2024-09-20',
-      parentPhone: '+223 78 99 00 11'
-    },
-    {
-      id: '5',
-      name: 'Ibrahim Traore',
-      class: 'CM1A',
-      level: 'CM1',
-      outstandingAmount: 0,
-      lastPayment: '2024-10-10',
-      parentPhone: '+223 70 33 44 55'
+  // Charger les élèves au montage du modal
+  React.useEffect(() => {
+    if (isOpen && userSchool && currentAcademicYear) {
+      loadStudents();
     }
-  ];
+  }, [isOpen, userSchool, currentAcademicYear]);
+
+  const loadStudents = async () => {
+    if (!userSchool || !currentAcademicYear) return;
+
+    try {
+      setLoading(true);
+      const studentsData = await StudentService.getStudents(userSchool.id, currentAcademicYear.id);
+      setStudents(studentsData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des élèves:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const paymentTypes = [
     { value: 'Inscription', label: 'Frais d\'inscription', amount: 50000 },
@@ -116,8 +66,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
   };
 
   const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.class.toLowerCase().includes(searchTerm.toLowerCase())
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.class_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.parent_email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const validatePayment = () => {
@@ -143,13 +94,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleStudentSelect = (student: Student) => {
+  const handleStudentSelect = (student: any) => {
     setSelectedStudent(student);
     setPaymentData(prev => ({
       ...prev,
-      studentId: student.id,
-      studentName: student.name,
-      studentClass: student.class
+      enrollmentId: student.id,
+      studentName: `${student.first_name} ${student.last_name}`,
+      studentClass: student.class_name
     }));
     setStep('payment');
   };
@@ -268,6 +219,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
           {/* Step 1: Student Selection */}
           {step === 'student' && (
             <div className="space-y-6">
+              {loading && (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-600 mt-2">Chargement des élèves...</p>
+                </div>
+              )}
+
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -279,51 +237,68 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+              {!loading && (
+                <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
                 {filteredStudents.map((student) => (
-                  <div
-                    key={student.id}
-                    onClick={() => handleStudentSelect(student)}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <User className="h-6 w-6 text-blue-600" />
+                    <div
+                      key={student.id}
+                      onClick={() => handleStudentSelect(student)}
+                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 font-medium">
+                              {student.first_name[0]}{student.last_name[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-800">
+                              {student.first_name} {student.last_name}
+                            </h3>
+                            <p className="text-sm text-gray-600">{student.class_name} • {student.level}</p>
+                            <p className="text-xs text-gray-500">📧 {student.parent_email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-gray-800">{student.name}</h3>
-                          <p className="text-sm text-gray-600">{student.class} • {student.level}</p>
-                          {student.parentPhone && (
-                            <p className="text-xs text-gray-500">📱 {student.parentPhone}</p>
-                          )}
-                        </div>
-                      </div>
                       
-                      <div className="text-right">
-                        {student.outstandingAmount > 0 ? (
-                          <div>
-                            <p className="text-lg font-bold text-red-600">
-                              {student.outstandingAmount.toLocaleString()} FCFA
+                        <div className="text-right">
+                          {student.outstanding_amount > 0 ? (
+                            <div>
+                              <p className="text-lg font-bold text-red-600">
+                                {student.outstanding_amount.toLocaleString()} FCFA
+                              </p>
+                              <p className="text-xs text-red-500">Montant dû</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-lg font-bold text-green-600">À jour</p>
+                              <p className="text-xs text-green-500">Aucun impayé</p>
+                            </div>
+                          )}
+                          <div className="mt-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-green-600 h-2 rounded-full"
+                                style={{ width: `${(student.paid_amount / student.total_fees) * 100}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {Math.round((student.paid_amount / student.total_fees) * 100)}% payé
                             </p>
-                            <p className="text-xs text-red-500">Montant dû</p>
                           </div>
-                        ) : (
-                          <div>
-                            <p className="text-lg font-bold text-green-600">À jour</p>
-                            <p className="text-xs text-green-500">Aucun impayé</p>
-                          </div>
-                        )}
-                        {student.lastPayment && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Dernier: {new Date(student.lastPayment).toLocaleDateString('fr-FR')}
-                          </p>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                  
+                      <p><strong>Classe:</strong> {selectedStudent.class_name}</p>
+                      <p><strong>Frais annuels:</strong> {selectedStudent.total_fees.toLocaleString()} FCFA</p>
+                      <p><strong>Déjà payé:</strong> {selectedStudent.paid_amount.toLocaleString()} FCFA</p>
+                      <p><strong>Reste à payer:</strong> {selectedStudent.outstanding_amount.toLocaleString()} FCFA</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -539,8 +514,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
             <div className="space-y-6">
               <div className="text-center">
                 <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">Paiement Enregistré</h3>
-                <p className="text-gray-600">Le paiement a été enregistré avec succès</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">Confirmation de Paiement</h3>
+                <p className="text-gray-600">Vérifiez les informations avant de confirmer</p>
               </div>
 
               <div className="p-6 bg-gray-50 rounded-lg">
@@ -548,7 +523,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Élève:</span>
-                    <span className="font-medium">{selectedStudent.name} ({selectedStudent.class})</span>
+                    <span className="font-medium">
+                      {selectedStudent.first_name} {selectedStudent.last_name} ({selectedStudent.class_name})
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Type:</span>
@@ -572,6 +549,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                     <span className="text-gray-600">Date:</span>
                     <span className="font-medium">{new Date(paymentData.date!).toLocaleDateString('fr-FR')}</span>
                   </div>
+                  {paymentData.reference && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Référence:</span>
+                      <span className="font-medium">{paymentData.reference}</span>
+                    </div>
+                  )}
+                  {paymentData.notes && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Notes:</span>
+                      <span className="font-medium">{paymentData.notes}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -605,13 +594,27 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                   onClick={() => {
                     if (validatePayment()) {
                       setStep('confirmation');
-                      handleSubmit();
                     }
                   }}
                   className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                 >
                   <DollarSign className="h-4 w-4" />
-                  <span>Enregistrer Paiement</span>
+                  <span>Continuer</span>
+                </button>
+              )}
+              
+              {step === 'confirmation' && (
+                <button
+                  onClick={() => {
+                    if (validatePayment()) {
+                      onAddPayment(paymentData);
+                      onClose();
+                    }
+                  }}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Confirmer le Paiement</span>
                 </button>
               )}
             </div>

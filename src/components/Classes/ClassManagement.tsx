@@ -17,14 +17,14 @@ interface ClassData {
   capacity: number;
   current_students: number;
   subjects: string[];
-  teacher_assignment?: {
+  teacher_assignment?: Array<{
     teacher: {
       first_name: string;
       last_name: string;
       email: string;
     };
     salary_amount: number;
-  };
+  }>;
   classroom_assignment?: {
     classroom: {
       name: string;

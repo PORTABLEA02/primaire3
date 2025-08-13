@@ -28,6 +28,14 @@ interface ClassWithoutTeacher {
   current_students: number;
   capacity: number;
   subjects: string[];
+  teacher_assignment?: Array<{
+    teacher: {
+      first_name: string;
+      last_name: string;
+      email: string;
+    };
+    salary_amount: number;
+  }>;
 }
 
 interface Assignment {
@@ -44,6 +52,8 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
   onAssignTeacher
 }) => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [availableTeachers, setAvailableTeachers] = useState<AvailableTeacher[]>([]);
   const [classesWithoutTeacher, setClassesWithoutTeacher] = useState<ClassWithoutTeacher[]>([]);
   const [assignedClasses, setAssignedClasses] = useState<any[]>([]);
@@ -521,10 +531,9 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
                   
                   <div className="mt-3 p-3 bg-gray-50 rounded">
                     <p className="text-sm font-medium text-gray-700 mb-1">
-                      Enseignant: {classInfo.teacher_assignment?.teacher 
-                        ? `${classInfo.teacher_assignment.teacher.first_name} ${classInfo.teacher_assignment.teacher.last_name}`
-                        : 'Non assigné'
-                      }
+                      Enseignant: {classInfo.teacher_assignment?.[0]?.teacher 
+                        ? `${classInfo.teacher_assignment[0].teacher.first_name} ${classInfo.teacher_assignment[0].teacher.last_name}`
+                        : 'Non assigné'}
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {(classInfo.subjects || []).slice(0, 3).map(subject => (

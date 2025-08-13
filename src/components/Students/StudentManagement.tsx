@@ -143,9 +143,9 @@ const StudentManagement: React.FC = () => {
           academicYearId: currentAcademicYear.id,
           amount: enrollmentData.initialPayment,
           paymentMethodId: paymentMethod?.id,
-          paymentType: 'Inscription',
+          paymentType: enrollmentData.paymentType,
           paymentDate: new Date().toISOString().split('T')[0],
-          referenceNumber: `INS-${Date.now()}`,
+          referenceNumber: `${enrollmentData.paymentType === 'Inscription' ? 'INS' : 'SCOL'}-${Date.now()}`,
           mobileNumber: enrollmentData.mobileNumber,
           bankDetails: enrollmentData.bankDetails,
           notes: enrollmentData.notes,
@@ -158,18 +158,20 @@ const StudentManagement: React.FC = () => {
           action: 'RECORD_INITIAL_PAYMENT',
           entityType: 'payment',
           level: 'success',
-          details: `Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour ${studentData.firstName} ${studentData.lastName}`
+          details: `Paiement ${enrollmentData.paymentType.toLowerCase()} de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour ${studentData.firstName} ${studentData.lastName}`
         });
+        
+        // Message de succès avec paiement
+        const message = `Élève inscrit avec succès ! Paiement ${enrollmentData.paymentType.toLowerCase()} de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`;
+        alert(message);
+      } else {
+        // Message de succès sans paiement
+        alert('Élève inscrit avec succès ! Aucun paiement enregistré (montant = 0).');
       }
       
       // Recharger les données
       await loadStudents();
       await loadStats();
-      
-      const message = enrollmentData.initialPayment > 0 
-        ? `Élève inscrit avec succès ! Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`
-        : 'Élève inscrit avec succès !';
-      alert(message);
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout:', error);
       alert(`Erreur: ${error.message}`);

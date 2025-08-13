@@ -15,6 +15,8 @@ interface EnrollmentData {
   className: string;
   enrollmentDate: string;
   isNewStudent: boolean;
+  paymentType: 'Inscription' | 'Scolarité';
+  initialPayment: number;
 }
 
 interface ClassOption {
@@ -53,7 +55,9 @@ const EnrollmentInterface: React.FC = () => {
     classId: '',
     className: '',
     enrollmentDate: new Date().toISOString().split('T')[0],
-    isNewStudent: true
+    isNewStudent: true,
+    paymentType: 'Inscription',
+    initialPayment: 0
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<ExistingStudent | null>(null);
@@ -237,7 +241,9 @@ const EnrollmentInterface: React.FC = () => {
       gender: 'Masculin',
       parentName: '',
       parentPhone: '',
-      parentEmail: ''
+      parentEmail: '',
+      paymentType: 'Inscription',
+      initialPayment: 0
     }));
     setSelectedStudent(null);
     setErrors({});
@@ -274,7 +280,10 @@ const EnrollmentInterface: React.FC = () => {
       
       // Simulation de l'inscription
       setTimeout(() => {
-        alert(`Inscription réussie ! ${enrollmentData.firstName} ${enrollmentData.lastName} a été inscrit(e) en ${enrollmentData.className} pour l'année ${currentAcademicYear}.`);
+        const paymentMessage = enrollmentData.initialPayment > 0 
+          ? ` avec un paiement ${enrollmentData.paymentType.toLowerCase()} de ${enrollmentData.initialPayment.toLocaleString()} FCFA`
+          : ' sans paiement initial';
+        alert(`Inscription réussie ! ${enrollmentData.firstName} ${enrollmentData.lastName} a été inscrit(e) en ${enrollmentData.className}${paymentMessage}.`);
         handleReset();
       }, 1000);
     }
@@ -293,7 +302,9 @@ const EnrollmentInterface: React.FC = () => {
       classId: '',
       className: '',
       enrollmentDate: new Date().toISOString().split('T')[0],
-      isNewStudent: true
+      isNewStudent: true,
+      paymentType: 'Inscription',
+      initialPayment: 0
     });
     setSelectedStudent(null);
     setErrors({});

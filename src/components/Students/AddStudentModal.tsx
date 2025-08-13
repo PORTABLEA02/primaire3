@@ -42,6 +42,7 @@ interface EnrollmentData {
   classId: string;
   totalFees: number;
   initialPayment: number;
+  paymentType: 'Inscription' | 'Scolarité';
   paymentMethod: 'Espèces' | 'Mobile Money' | 'Virement Bancaire';
   mobileNumber?: string;
   bankDetails?: string;
@@ -89,6 +90,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
     classId: '',
     totalFees: 0,
     initialPayment: 0,
+    paymentType: 'Inscription',
     paymentMethod: 'Espèces',
     notes: ''
   });
@@ -169,11 +171,16 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       if (enrollmentData.initialPayment > enrollmentData.totalFees) {
         newErrors.initialPayment = 'Le paiement initial ne peut pas dépasser les frais totaux';
       }
-      if (enrollmentData.paymentMethod === 'Mobile Money' && !enrollmentData.mobileNumber) {
+      if (enrollmentData.initialPayment > 0 && enrollmentData.paymentMethod === 'Mobile Money' && !enrollmentData.mobileNumber) {
         newErrors.mobileNumber = 'Numéro de téléphone requis pour Mobile Money';
       }
-      if (enrollmentData.paymentMethod === 'Virement Bancaire' && !enrollmentData.bankDetails) {
+      if (enrollmentData.initialPayment > 0 && enrollmentData.paymentMethod === 'Virement Bancaire' && !enrollmentData.bankDetails) {
         newErrors.bankDetails = 'Détails bancaires requis pour le virement';
+      }
+      
+      // Validation spécifique selon le type de paiement
+      if (enrollmentData.paymentType === 'Inscription' && enrollmentData.initialPayment > 50000) {
+        newErrors.initialPayment = 'Les frais d\'inscription ne peuvent pas dépasser 50,000 FCFA';
       }
     }
 
@@ -265,6 +272,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       classId: '',
       totalFees: 0,
       initialPayment: 0,
+      paymentType: 'Inscription',
       paymentMethod: 'Espèces',
       notes: ''
     });
@@ -798,18 +806,83 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                   <h4 className="font-medium text-gray-800 mb-2">Frais de Scolarité</h4>
                   <div className="text-sm text-gray-700 space-y-1">
                     <p><strong>Frais annuels:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
+                    <p><strong>Frais d'inscription:</strong> 50,000 FCFA</p>
                   </div>
                 </div>
               )}
 
+              {/* Type de paiement */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Type de Paiement *
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    onClick={() => setEnrollmentData(prev => ({ ...prev, paymentType: 'Inscription' }))}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      enrollmentData.paymentType === 'Inscription'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={enrollmentData.paymentType === 'Inscription'}
+                        onChange={() => {}}
+                        className="text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <h4 className="font-medium text-gray-800">Frais d'Inscription</h4>
+                        <p className="text-sm text-gray-600">50,000 FCFA - Paiement unique</p>
+                        <p className="text-xs text-gray-500">Obligatoire pour valider l'inscription</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setEnrollmentData(prev => ({ ...prev, paymentType: 'Scolarité' }))}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      enrollmentData.paymentType === 'Scolarité'
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-green-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={enrollmentData.paymentType === 'Scolarité'}
+                        onChange={() => {}}
+                        className="text-green-600 focus:ring-green-500"
+                      />
+                      <div>
+                        <h4 className="font-medium text-gray-800">Frais de Scolarité</h4>
+                        <p className="text-sm text-gray-600">{enrollmentData.totalFees.toLocaleString()} FCFA - Annuel</p>
+                        <p className="text-xs text-gray-500">Peut être payé en plusieurs tranches</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Paiement Initial (FCFA)
+                  Montant à Payer (FCFA)
                 </label>
+                <div className="flex items-center space-x-4 mb-2">
+                  <span className="text-sm text-gray-600">
+                    {enrollmentData.paymentType === 'Inscription' ? 'Frais d\'inscription:' : 'Acompte scolarité:'}
+                  </span>
+                  <span className="font-medium text-blue-600">
+                    {enrollmentData.paymentType === 'Inscription' ? '50,000' : enrollmentData.totalFees.toLocaleString()} FCFA
+                  </span>
+                </div>
                 <input
                   type="number"
                   min="0"
-                  max={enrollmentData.totalFees}
+                  max={enrollmentData.paymentType === 'Inscription' ? 50000 : enrollmentData.totalFees}
                   value={enrollmentData.initialPayment}
                   onChange={(e) => setEnrollmentData(prev => ({ ...prev, initialPayment: parseInt(e.target.value) || 0 }))}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
@@ -817,13 +890,27 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                   }`}
                 />
                 {errors.initialPayment && <p className="text-red-500 text-sm mt-1">{errors.initialPayment}</p>}
-                <p className="text-sm text-gray-500 mt-1">
-                  Solde restant: {(enrollmentData.totalFees - enrollmentData.initialPayment).toLocaleString()} FCFA
-                </p>
+                <div className="mt-2 space-y-1">
+                  {enrollmentData.initialPayment === 0 ? (
+                    <p className="text-sm text-yellow-600 font-medium">
+                      ⚠️ Aucun paiement ne sera enregistré (montant = 0)
+                    </p>
+                  ) : (
+                    <p className="text-sm text-green-600 font-medium">
+                      ✓ Paiement de {enrollmentData.initialPayment.toLocaleString()} FCFA sera enregistré
+                    </p>
+                  )}
+                  {enrollmentData.paymentType === 'Scolarité' && (
+                    <p className="text-sm text-gray-500">
+                      Solde scolarité restant: {(enrollmentData.totalFees - enrollmentData.initialPayment).toLocaleString()} FCFA
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Payment Method */}
-              <div>
+              {enrollmentData.initialPayment > 0 && (
+                <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Méthode de Paiement *
                 </label>
@@ -856,10 +943,11 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                     );
                   })}
                 </div>
-              </div>
+                </div>
+              )}
 
               {/* Additional Fields based on Payment Method */}
-              {enrollmentData.paymentMethod === 'Mobile Money' && (
+              {enrollmentData.initialPayment > 0 && enrollmentData.paymentMethod === 'Mobile Money' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Numéro de Téléphone *
@@ -877,7 +965,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 </div>
               )}
 
-              {enrollmentData.paymentMethod === 'Virement Bancaire' && (
+              {enrollmentData.initialPayment > 0 && enrollmentData.paymentMethod === 'Virement Bancaire' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Référence Bancaire *
@@ -960,8 +1048,35 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                   </div>
                   <div>
                     <p><strong>Frais annuels:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
-                    <p><strong>Paiement initial:</strong> {enrollmentData.initialPayment.toLocaleString()} FCFA</p>
-                    <p><strong>Méthode:</strong> {enrollmentData.paymentMethod}</p>
+                    <p><strong>Type de paiement:</strong> {enrollmentData.paymentType}</p>
+                    <p><strong>Montant payé:</strong> {enrollmentData.initialPayment.toLocaleString()} FCFA</p>
+                    {enrollmentData.initialPayment > 0 && (
+                      <p><strong>Méthode:</strong> {enrollmentData.paymentMethod}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Information sur le paiement */}
+              <div className={`p-4 rounded-lg border ${
+                enrollmentData.initialPayment === 0 
+                  ? 'bg-yellow-50 border-yellow-200' 
+                  : 'bg-green-50 border-green-200'
+              }`}>
+                <div className="flex items-start space-x-3">
+                  <span className={`text-lg ${enrollmentData.initialPayment === 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                    {enrollmentData.initialPayment === 0 ? '⚠️' : '✅'}
+                  </span>
+                  <div>
+                    <h4 className={`font-medium ${enrollmentData.initialPayment === 0 ? 'text-yellow-800' : 'text-green-800'}`}>
+                      {enrollmentData.initialPayment === 0 ? 'Inscription sans paiement' : 'Inscription avec paiement'}
+                    </h4>
+                    <p className={`text-sm ${enrollmentData.initialPayment === 0 ? 'text-yellow-700' : 'text-green-700'} mt-1`}>
+                      {enrollmentData.initialPayment === 0 
+                        ? 'L\'élève sera inscrit sans enregistrement de transaction de paiement. Les paiements pourront être ajoutés ultérieurement.'
+                        : `Un paiement de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour les ${enrollmentData.paymentType.toLowerCase()} sera enregistré lors de l'inscription.`
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1003,8 +1118,13 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                   onClick={handleSubmit}
                   className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                 >
-                  <Users className="h-4 w-4" />
-                  <span>Confirmer l'Inscription</span>
+                  <User className="h-4 w-4" />
+                  <span>
+                    {enrollmentData.initialPayment === 0 
+                      ? 'Inscrire sans Paiement' 
+                      : 'Inscrire avec Paiement'
+                    }
+                  </span>
                 </button>
               )}
             </div>

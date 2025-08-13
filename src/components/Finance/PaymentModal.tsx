@@ -9,6 +9,21 @@ interface PaymentModalProps {
   onAddPayment: (paymentData: any) => void;
 }
 
+interface PaymentData {
+  studentId: string;
+  studentName: string;
+  studentClass: string;
+  amount: number;
+  method: 'Espèces' | 'Mobile Money' | 'Virement Bancaire';
+  type: 'Inscription' | 'Scolarité' | 'Cantine' | 'Transport' | 'Fournitures' | 'Autre';
+  date: string;
+  month?: string;
+  reference?: string;
+  mobileNumber?: string;
+  bankDetails?: string;
+  notes?: string;
+}
+
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayment }) => {
   const { userSchool, currentAcademicYear } = useAuth();
   const [step, setStep] = useState<'student' | 'payment' | 'confirmation'>('student');
@@ -18,7 +33,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [paymentData, setPaymentData] = useState<Partial<PaymentData>>({
     amount: 0,
-    type: 'Mensualité',
+    type: 'Scolarité',
     method: 'Espèces',
     date: new Date().toISOString().split('T')[0]
   });
@@ -151,8 +166,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
     setPaymentData({
       amount: 0,
       method: 'Espèces',
-      type: 'Mensualité',
-      academicYear: currentAcademicYear,
+      type: 'Scolarité',
       date: new Date().toISOString().split('T')[0]
     });
     setSearchTerm('');
@@ -238,63 +252,70 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
               </div>
 
               {!loading && (
-                <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
-                {filteredStudents.map((student) => (
-                    <div
-                      key={student.id}
-                      onClick={() => handleStudentSelect(student)}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-medium">
-                              {student.first_name[0]}{student.last_name[0]}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-800">
-                              {student.first_name} {student.last_name}
-                            </h3>
-                            <p className="text-sm text-gray-600">{student.class_name} • {student.level}</p>
-                            <p className="text-xs text-gray-500">📧 {student.parent_email}</p>
-                          </div>
-                        </div>
-                      
-                        <div className="text-right">
-                          {student.outstanding_amount > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+                    {filteredStudents.map((student) => (
+                      <div
+                        key={student.id}
+                        onClick={() => handleStudentSelect(student)}
+                        className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-blue-600 font-medium">
+                                {student.first_name[0]}{student.last_name[0]}
+                              </span>
+                            </div>
                             <div>
-                              <p className="text-lg font-bold text-red-600">
-                                {student.outstanding_amount.toLocaleString()} FCFA
+                              <h3 className="font-medium text-gray-800">
+                                {student.first_name} {student.last_name}
+                              </h3>
+                              <p className="text-sm text-gray-600">{student.class_name} • {student.level}</p>
+                              <p className="text-xs text-gray-500">📧 {student.parent_email}</p>
+                            </div>
+                          </div>
+                        
+                          <div className="text-right">
+                            {student.outstanding_amount > 0 ? (
+                              <div>
+                                <p className="text-lg font-bold text-red-600">
+                                  {student.outstanding_amount.toLocaleString()} FCFA
+                                </p>
+                                <p className="text-xs text-red-500">Montant dû</p>
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-lg font-bold text-green-600">À jour</p>
+                                <p className="text-xs text-green-500">Aucun impayé</p>
+                              </div>
+                            )}
+                            <div className="mt-2">
+                              <div className="w-20 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-green-600 h-2 rounded-full"
+                                  style={{ width: `${(student.paid_amount / student.total_fees) * 100}%` }}
+                                ></div>
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {Math.round((student.paid_amount / student.total_fees) * 100)}% payé
                               </p>
-                              <p className="text-xs text-red-500">Montant dû</p>
                             </div>
-                          ) : (
-                            <div>
-                              <p className="text-lg font-bold text-green-600">À jour</p>
-                              <p className="text-xs text-green-500">Aucun impayé</p>
-                            </div>
-                          )}
-                          <div className="mt-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-green-600 h-2 rounded-full"
-                                style={{ width: `${(student.paid_amount / student.total_fees) * 100}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {Math.round((student.paid_amount / student.total_fees) * 100)}% payé
-                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   
-                      <p><strong>Classe:</strong> {selectedStudent.class_name}</p>
-                      <p><strong>Frais annuels:</strong> {selectedStudent.total_fees.toLocaleString()} FCFA</p>
-                      <p><strong>Déjà payé:</strong> {selectedStudent.paid_amount.toLocaleString()} FCFA</p>
-                      <p><strong>Reste à payer:</strong> {selectedStudent.outstanding_amount.toLocaleString()} FCFA</p>
+                  {selectedStudent && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">Informations de l'élève sélectionné</h4>
+                      <div className="space-y-1 text-sm text-blue-700">
+                        <p><strong>Classe:</strong> {selectedStudent.class_name}</p>
+                        <p><strong>Frais annuels:</strong> {selectedStudent.total_fees.toLocaleString()} FCFA</p>
+                        <p><strong>Déjà payé:</strong> {selectedStudent.paid_amount.toLocaleString()} FCFA</p>
+                        <p><strong>Reste à payer:</strong> {selectedStudent.outstanding_amount.toLocaleString()} FCFA</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -312,8 +333,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                     <User className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-blue-800">{selectedStudent.name}</h3>
-                    <p className="text-sm text-blue-600">{selectedStudent.class} • {selectedStudent.level}</p>
+                    <h3 className="font-medium text-blue-800">{selectedStudent.first_name} {selectedStudent.last_name}</h3>
+                    <p className="text-sm text-blue-600">{selectedStudent.class_name} • {selectedStudent.level}</p>
                   </div>
                   <button
                     onClick={() => setStep('student')}
@@ -359,39 +380,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                   {errors.amount && <p className="text-red-500 text-sm mt-1">{errors.amount}</p>}
                 </div>
 
-                {/* Month (for Mensualité) */}
-                {paymentData.type === 'Scolarité' && (
-                  <div>
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h4 className="font-medium text-blue-800 mb-2">Information Scolarité</h4>
-                      {selectedStudent && (
-                        <div className="space-y-2 text-sm text-blue-700">
-                          <p><strong>Classe:</strong> {selectedStudent.class}</p>
-                          <p><strong>Frais annuels:</strong> {scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle]?.toLocaleString() || 'Non défini'} FCFA</p>
-                          <p><strong>Déjà payé:</strong> {(selectedStudent.outstandingAmount > 0 ? 
-                            (scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle] - selectedStudent.outstandingAmount) : 
-                            scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle]
-                          )?.toLocaleString()} FCFA</p>
-                          <p><strong>Reste à payer:</strong> {selectedStudent.outstandingAmount.toLocaleString()} FCFA</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Description de la tranche (optionnel)
-                      </label>
-                      <input
-                        type="text"
-                        value={paymentData.month || ''}
-                        onChange={(e) => setPaymentData(prev => ({ ...prev, month: e.target.value }))}
-                        placeholder="Ex: 1ère tranche, Paiement partiel octobre..."
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {/* Payment Date */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -405,6 +393,39 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                   />
                 </div>
               </div>
+
+              {/* Month (for Scolarité) */}
+              {paymentData.type === 'Scolarité' && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-blue-800 mb-2">Information Scolarité</h4>
+                    {selectedStudent && (
+                      <div className="space-y-2 text-sm text-blue-700">
+                        <p><strong>Classe:</strong> {selectedStudent.class_name}</p>
+                        <p><strong>Frais annuels:</strong> {scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle]?.toLocaleString() || 'Non défini'} FCFA</p>
+                        <p><strong>Déjà payé:</strong> {(selectedStudent.outstanding_amount > 0 ? 
+                          (scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle] - selectedStudent.outstanding_amount) : 
+                          scolariteAnnuelle[selectedStudent.level as keyof typeof scolariteAnnuelle]
+                        )?.toLocaleString()} FCFA</p>
+                        <p><strong>Reste à payer:</strong> {selectedStudent.outstanding_amount.toLocaleString()} FCFA</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description de la tranche (optionnel)
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentData.month || ''}
+                      onChange={(e) => setPaymentData(prev => ({ ...prev, month: e.target.value }))}
+                      placeholder="Ex: 1ère tranche, Paiement partiel octobre..."
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Payment Method */}
               <div>
@@ -533,7 +554,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
                   </div>
                   {paymentData.month && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Mois:</span>
+                      <span className="text-gray-600">Description:</span>
                       <span className="font-medium">{paymentData.month}</span>
                     </div>
                   )}

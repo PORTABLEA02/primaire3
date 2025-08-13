@@ -136,7 +136,7 @@ const StudentManagement: React.FC = () => {
           schoolId: userSchool.id,
           academicYearId: currentAcademicYear.id,
           amount: enrollmentData.initialPayment,
-          paymentMethodId: enrollmentData.paymentMethodId,
+          paymentMethodId: enrollmentData.paymentMethodId || null,
           paymentType: enrollmentData.paymentType,
           paymentDate: new Date().toISOString().split('T')[0],
           referenceNumber: `INS-${Date.now()}`,

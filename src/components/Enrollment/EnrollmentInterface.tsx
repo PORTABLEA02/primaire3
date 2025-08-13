@@ -64,7 +64,7 @@ const EnrollmentInterface: React.FC = () => {
     enrollmentDate: new Date().toISOString().split('T')[0],
     isNewStudent: true,
     paymentType: 'Inscription',
-    paymentMethodId: '',
+    paymentMethodId: null,
     initialPayment: 0
   });
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,6 +99,11 @@ const EnrollmentInterface: React.FC = () => {
         setEnrollmentData(prev => ({
           ...prev,
           paymentMethodId: methods[0].id
+        }));
+      } else {
+        setEnrollmentData(prev => ({
+          ...prev,
+          paymentMethodId: null
         }));
       }
     } catch (error) {
@@ -327,13 +332,13 @@ const EnrollmentInterface: React.FC = () => {
     if (paymentType === 'Inscription') {
       const inscriptionFee = feeTypes.find(f => 
         f.name.toLowerCase().includes('inscription') && 
-        (f.level === 'Tous' || f.level === level)
+        (f.level === 'Tous' || f.level.toLowerCase() === level.toLowerCase())
       );
       feeAmount = inscriptionFee?.amount || 50000;
     } else {
       const scolariteFee = feeTypes.find(f => 
         f.name.toLowerCase().includes('scolarité') && 
-        f.level === level
+        f.level.toLowerCase() === level.toLowerCase()
       );
       feeAmount = scolariteFee?.amount || 350000;
     }
@@ -387,7 +392,7 @@ const EnrollmentInterface: React.FC = () => {
       enrollmentDate: new Date().toISOString().split('T')[0],
       isNewStudent: true,
       paymentType: 'Inscription',
-      paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : '',
+      paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : null,
       initialPayment: 0
     });
     setSelectedStudent(null);

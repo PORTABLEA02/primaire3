@@ -22,6 +22,7 @@ interface PaymentData {
   mobileNumber?: string;
   bankDetails?: string;
   notes?: string;
+  paymentMethodId?: string | null;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayment }) => {
@@ -35,7 +36,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
     amount: 0,
     type: 'Scolarité',
     method: 'Espèces',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    paymentMethodId: null
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -70,11 +72,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
   ];
 
   const [feeTypes, setFeeTypes] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
 
   // Charger les types de frais au montage du modal
   React.useEffect(() => {
     if (isOpen && userSchool) {
       loadFeeTypes();
+      loadPaymentMethods();
     }
   }, [isOpen, userSchool]);
 
@@ -92,6 +96,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
       setFeeTypes(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement des types de frais:', error);
+    }
+  };
+
+  const loadPaymentMethods = async () => {
+    if (!userSchool) return;
+
+    try {
+      const methods = await PaymentService.getPaymentMethods(userSchool.id);
+      setPaymentMethods(methods);
+      
+      // Set default payment method
+      if (methods.length > 0) {
+        setPaymentData(prev => ({
+          ...prev,
+          paymentMethodId: methods[0].id
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des méthodes de paiement:', error);
     }
   };
 
@@ -171,6 +194,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
 
   const handleSubmit = () => {
     if (validatePayment() && selectedStudent) {
+      // Find the payment method ID based on the selected method
+      const selectedPaymentMethod = paymentMethods.find(pm => pm.name === paymentData.method);
+      
       const completePaymentData: PaymentData = {
         studentId: selectedStudent.id,
         studentName: selectedStudent.name,
@@ -183,7 +209,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
         reference: paymentData.reference,
         mobileNumber: paymentData.mobileNumber,
         bankDetails: paymentData.bankDetails,
-        notes: paymentData.notes
+        notes: paymentData.notes,
+        paymentMethodId: selectedPaymentMethod?.id || null
       };
 
       onAddPayment(completePaymentData);
@@ -198,7 +225,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
       amount: 0,
       method: 'Espèces',
       type: 'Scolarité',
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      paymentMethodId: null
     });
     setSearchTerm('');
     setErrors({});

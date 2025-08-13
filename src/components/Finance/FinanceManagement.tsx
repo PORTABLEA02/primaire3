@@ -124,6 +124,7 @@ const FinanceManagement: React.FC = () => {
         schoolId: userSchool.id,
         academicYearId: currentAcademicYear.id,
         amount: paymentData.amount,
+        paymentMethodId: paymentData.paymentMethodId,
         paymentType: paymentData.type,
         paymentDate: paymentData.date,
         referenceNumber: paymentData.reference,

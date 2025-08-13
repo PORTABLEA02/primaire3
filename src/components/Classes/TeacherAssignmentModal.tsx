@@ -417,7 +417,6 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
                 <div className="text-center">
                   {selectedTeacher ? (
                     <div className="p-4 bg-blue-100 rounded-lg">
-                          ? `${classInfo.teacher_assignment[0]?.teacher?.first_name} ${classInfo.teacher_assignment[0]?.teacher?.last_name}`
                       <p className="font-medium text-blue-800">
                         {selectedTeacher.first_name} {selectedTeacher.last_name}
                       </p>

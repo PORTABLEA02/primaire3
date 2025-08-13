@@ -484,7 +484,7 @@ const EnrollmentInterface: React.FC = () => {
                       type="tel"
                       value={enrollmentData.parentPhone}
                       onChange={(e) => setEnrollmentData(prev => ({ ...prev, parentPhone: e.target.value }))}
-                      placeholder="+223 XX XX XX XX"
+                      placeholder="+229 01 XX XX XX XX"
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         errors.parentPhone ? 'border-red-300' : 'border-gray-200'
                       }`}

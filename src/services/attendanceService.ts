@@ -158,7 +158,7 @@ export class AttendanceService {
 
   // Valider le numéro de téléphone (format Mali)
   private static isValidPhoneNumber(phone: string): boolean {
-    const phoneRegex = /^\+229\s?[0-9]\d{7}$|^[0-9]\d{7}$/;
+    const phoneRegex = /^\+22901[4-9][4-9]\d{6}$/;
     return phoneRegex.test(phone);
   }
 }

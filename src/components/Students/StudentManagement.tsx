@@ -8,6 +8,8 @@ import StudentFilters from './StudentFilters';
 import StudentTable from './StudentTable';
 import { useAuth } from '../Auth/AuthProvider';
 import { StudentService } from '../../services/studentService';
+import { PaymentService } from '../../services/paymentService';
+import { ActivityLogService } from '../../services/activityLogService';
 import { StudentHelpers } from '../../utils/studentHelpers';
 
 interface Student {
@@ -35,7 +37,7 @@ interface Student {
 }
 
 const StudentManagement: React.FC = () => {
-  const { userSchool, currentAcademicYear } = useAuth();
+  const { userSchool, currentAcademicYear, user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,16 +123,53 @@ const StudentManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
-      await StudentService.createStudentWithEnrollment(
-        { ...studentData, schoolId: userSchool.id },
-        { ...enrollmentData, schoolId: userSchool.id, academicYearId: currentAcademicYear.id }
+      // Créer l'élève et l'inscription
+      const { student, enrollment } = await StudentService.createStudentWithEnrollment(
+        studentData,
+        enrollmentData
       );
+      
+      // Si un paiement initial est effectué, l'enregistrer
+      if (enrollmentData.initialPayment > 0) {
+        // Obtenir l'ID de la méthode de paiement
+        const paymentMethod = await PaymentService.getPaymentMethodByName(
+          userSchool.id, 
+          enrollmentData.paymentMethod
+        );
+        
+        await PaymentService.recordPayment({
+          enrollmentId: enrollment.id,
+          schoolId: userSchool.id,
+          academicYearId: currentAcademicYear.id,
+          amount: enrollmentData.initialPayment,
+          paymentMethodId: paymentMethod?.id,
+          paymentType: 'Inscription',
+          paymentDate: new Date().toISOString().split('T')[0],
+          referenceNumber: `INS-${Date.now()}`,
+          mobileNumber: enrollmentData.mobileNumber,
+          bankDetails: enrollmentData.bankDetails,
+          notes: enrollmentData.notes,
+          processedBy: user?.id
+        });
+        
+        // Logger le paiement
+        await ActivityLogService.logActivity({
+          schoolId: userSchool.id,
+          action: 'RECORD_INITIAL_PAYMENT',
+          entityType: 'payment',
+          level: 'success',
+          details: `Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour ${studentData.firstName} ${studentData.lastName}`
+        });
+      }
       
       // Recharger les données
       await loadStudents();
       await loadStats();
       
-      alert('Élève ajouté avec succès !');
+      const message = enrollmentData.initialPayment > 0 
+        ? `Élève inscrit avec succès ! Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`
+        : 'Élève inscrit avec succès !';
+      alert(message);
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout:', error);
       alert(`Erreur: ${error.message}`);

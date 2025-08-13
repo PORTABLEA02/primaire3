@@ -213,7 +213,20 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
 
   const handleSubmit = () => {
     if (validateStep('financial')) {
-      onAddStudent(studentData, enrollmentData);
+      // Préparer les données complètes pour l'inscription avec paiement
+      const completeStudentData = {
+        ...studentData,
+        schoolId: userSchool?.id
+      };
+      
+      const completeEnrollmentData = {
+        ...enrollmentData,
+        schoolId: userSchool?.id,
+        academicYearId: currentAcademicYear?.id,
+        enrollmentDate: new Date().toISOString().split('T')[0]
+      };
+      
+      onAddStudent(completeStudentData, completeEnrollmentData);
       handleClose();
     }
   };

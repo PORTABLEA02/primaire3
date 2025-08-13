@@ -46,7 +46,7 @@ interface FinancialStats {
 }
 
 const FinanceManagement: React.FC = () => {
-  const { userSchool, currentAcademicYear } = useAuth();
+  const { userSchool, currentAcademicYear, user } = useAuth();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +130,7 @@ const FinanceManagement: React.FC = () => {
         mobileNumber: paymentData.mobileNumber,
         bankDetails: paymentData.bankDetails,
         notes: paymentData.notes,
-        processedBy: userSchool.id // Utiliser l'ID de l'utilisateur connecté
+        processedBy: user?.id // Utiliser l'ID de l'utilisateur connecté
       });
 
       // Logger l'activité

@@ -3,6 +3,8 @@ import { UserPlus, School, Calendar, Users, CheckCircle, AlertCircle, User, Book
 import { useAcademicYear } from '../../contexts/AcademicYearContext';
 import { useAuth } from '../Auth/AuthProvider';
 import { PaymentService } from '../../services/paymentService';
+import { StudentService } from '../../services/studentService';
+import { ClassService } from '../../services/classService';
 import { supabase } from '../../lib/supabase';
 
 interface EnrollmentData {
@@ -71,28 +73,65 @@ const EnrollmentInterface: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<ExistingStudent | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // États pour les données réelles
+  const [availableClasses, setAvailableClasses] = useState<ClassOption[]>([]);
+  const [existingStudents, setExistingStudents] = useState<ExistingStudent[]>([]);
+  const [loading, setLoading] = useState(false);
+
   // Charger les données au montage
   React.useEffect(() => {
     if (userSchool) {
-      loadPaymentData();
+      loadAllData();
     }
-  }, [userSchool]);
+  }, [userSchool, currentAcademicYear]);
 
-  const loadPaymentData = async () => {
-    if (!userSchool) return;
+  const loadAllData = async () => {
+    if (!userSchool || !currentAcademicYear) return;
 
     try {
-      const [methods, fees] = await Promise.all([
+      setLoading(true);
+      
+      const [methods, fees, classes, students] = await Promise.all([
         PaymentService.getPaymentMethods(userSchool.id),
         supabase
           .from('fee_types')
           .select('*')
           .eq('school_id', userSchool.id)
-          .order('name')
+          .order('name'),
+        ClassService.getClasses(userSchool.id, currentAcademicYear.id),
+        StudentService.getStudents(userSchool.id, currentAcademicYear.id)
       ]);
 
       setPaymentMethods(methods);
       setFeeTypes(fees.data || []);
+      
+      // Mapper les classes
+      const mappedClasses: ClassOption[] = classes.map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        level: cls.level,
+        capacity: cls.capacity,
+        enrolled: cls.current_students,
+        teacher: cls.teacher_assignment?.[0]?.teacher 
+          ? `${cls.teacher_assignment[0].teacher.first_name} ${cls.teacher_assignment[0].teacher.last_name}`
+          : 'Non assigné',
+        fees: getFeeForLevel(cls.level)
+      }));
+      setAvailableClasses(mappedClasses);
+      
+      // Mapper les étudiants existants
+      const mappedStudents: ExistingStudent[] = students.map(student => ({
+        id: student.student_id,
+        firstName: student.first_name,
+        lastName: student.last_name,
+        dateOfBirth: student.date_of_birth,
+        gender: student.gender as 'Masculin' | 'Féminin',
+        parentName: student.father_name || student.mother_name || 'Non renseigné',
+        parentPhone: student.father_phone || student.mother_phone || 'Non renseigné',
+        parentEmail: student.parent_email,
+        currentClass: student.class_name
+      }));
+      setExistingStudents(mappedStudents);
 
       // Sélectionner la première méthode par défaut
       if (methods.length > 0) {
@@ -108,112 +147,19 @@ const EnrollmentInterface: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des données de paiement:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Classes disponibles avec places libres
-  const availableClasses: ClassOption[] = [
-    {
-      id: 'maternelle-1a',
-      name: 'Maternelle 1A',
-      level: 'Maternelle',
-      capacity: 30,
-      enrolled: 25,
-      teacher: 'Mme Kone',
-      fees: 300000
-    },
-    {
-      id: 'ci-a',
-      name: 'CI A',
-      level: 'CI',
-      capacity: 35,
-      enrolled: 32,
-      teacher: 'M. Traore',
-      fees: 350000
-    },
-    {
-      id: 'cp1',
-      name: 'CP1',
-      level: 'CP',
-      capacity: 35,
-      enrolled: 28,
-      teacher: 'Mlle Coulibaly',
-      fees: 350000
-    },
-    {
-      id: 'ce1a',
-      name: 'CE1A',
-      level: 'CE1',
-      capacity: 40,
-      enrolled: 35,
-      teacher: 'Mme Toure',
-      fees: 400000
-    },
-    {
-      id: 'ce2b',
-      name: 'CE2B',
-      level: 'CE2',
-      capacity: 40,
-      enrolled: 30,
-      teacher: 'M. Sidibe',
-      fees: 400000
-    },
-    {
-      id: 'cm1a',
-      name: 'CM1A',
-      level: 'CM1',
-      capacity: 45,
-      enrolled: 38,
-      teacher: 'M. Sangare',
-      fees: 450000
-    },
-    {
-      id: 'cm2a',
-      name: 'CM2A',
-      level: 'CM2',
-      capacity: 45,
-      enrolled: 42,
-      teacher: 'M. Ouattara',
-      fees: 450000
-    }
-  ];
-
-  // Étudiants existants (pour réinscription)
-  const existingStudents: ExistingStudent[] = [
-    {
-      id: '1',
-      firstName: 'Kofi',
-      lastName: 'Mensah',
-      dateOfBirth: '2013-05-15',
-      gender: 'Masculin',
-      parentName: 'M. Kwame Mensah',
-      parentPhone: '+229 70 11 22 33',
-      parentEmail: 'mensah.family@email.com',
-      currentClass: 'CM1A'
-    },
-    {
-      id: '2',
-      firstName: 'Aminata',
-      lastName: 'Traore',
-      dateOfBirth: '2014-08-22',
-      gender: 'Féminin',
-      parentName: 'Mme Fatoumata Traore',
-      parentPhone: '+229 75 44 55 66',
-      parentEmail: 'traore.aminata@email.com',
-      currentClass: 'CE2A'
-    },
-    {
-      id: '3',
-      firstName: 'Ibrahim',
-      lastName: 'Kone',
-      dateOfBirth: '2015-03-10',
-      gender: 'Masculin',
-      parentName: 'M. Sekou Kone',
-      parentPhone: '+229 65 77 88 99',
-      parentEmail: 'kone.ibrahim@email.com',
-      currentClass: 'CE1B'
-    }
-  ];
+  // Fonction pour obtenir les frais selon le niveau
+  const getFeeForLevel = (level: string): number => {
+    const fee = feeTypes.find(f => 
+      f.name.toLowerCase().includes('scolarité') && 
+      (f.level === level || f.level === 'Tous')
+    );
+    return fee?.amount || 350000;
+  };
 
   const filteredStudents = existingStudents.filter(student =>
     `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -361,10 +307,114 @@ const EnrollmentInterface: React.FC = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateStep('class')) {
-      // Ici vous pouvez implémenter la logique d'inscription
-      console.log('Inscription:', enrollmentData);
+      try {
+        setLoading(true);
+        
+        if (enrollmentData.isNewStudent) {
+          // Créer un nouvel élève avec inscription
+          const studentData = {
+            schoolId: userSchool!.id,
+            firstName: enrollmentData.firstName,
+            lastName: enrollmentData.lastName,
+            gender: enrollmentData.gender,
+            dateOfBirth: enrollmentData.dateOfBirth,
+            nationality: 'Béninoise',
+            parentEmail: enrollmentData.parentEmail,
+            fatherName: enrollmentData.parentName,
+            fatherPhone: enrollmentData.parentPhone,
+            address: 'Adresse à compléter'
+          };
+          
+          const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+          const enrollmentDataForDB = {
+            classId: enrollmentData.classId,
+            schoolId: userSchool!.id,
+            academicYearId: currentAcademicYear!.id,
+            totalFees: selectedClass?.fees || 350000,
+            paidAmount: enrollmentData.initialPayment,
+            paymentMethod: enrollmentData.paymentType
+          };
+          
+          const result = await StudentService.createStudentWithEnrollment(studentData, enrollmentDataForDB);
+          
+          // Si un paiement initial est effectué, l'enregistrer
+          if (enrollmentData.initialPayment > 0) {
+            await PaymentService.recordPayment({
+              enrollmentId: result.enrollment.id,
+              schoolId: userSchool!.id,
+              academicYearId: currentAcademicYear!.id,
+              amount: enrollmentData.initialPayment,
+              paymentMethodId: enrollmentData.paymentMethodId,
+              paymentType: enrollmentData.paymentType as any,
+              paymentDate: new Date().toISOString().split('T')[0],
+              referenceNumber: `INS-${Date.now()}`,
+              notes: `Paiement initial ${enrollmentData.paymentType}`
+            });
+          }
+          
+        } else if (selectedStudent) {
+          // Réinscrire un élève existant
+          const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+          
+          await StudentService.enrollStudent({
+            studentId: selectedStudent.id,
+            classId: enrollmentData.classId,
+            schoolId: userSchool!.id,
+            academicYearId: currentAcademicYear!.id,
+            totalFees: selectedClass?.fees || 350000,
+            paidAmount: enrollmentData.initialPayment,
+            paymentMethod: enrollmentData.paymentType
+          });
+          
+          // Si un paiement initial est effectué, l'enregistrer
+          if (enrollmentData.initialPayment > 0) {
+            // Récupérer l'ID de l'inscription créée
+            const { data: enrollment } = await supabase
+              .from('student_class_enrollments')
+              .select('id')
+              .eq('student_id', selectedStudent.id)
+              .eq('academic_year_id', currentAcademicYear!.id)
+              .eq('is_active', true)
+              .single();
+              
+            if (enrollment) {
+              await PaymentService.recordPayment({
+                enrollmentId: enrollment.id,
+                schoolId: userSchool!.id,
+                academicYearId: currentAcademicYear!.id,
+                amount: enrollmentData.initialPayment,
+                paymentMethodId: enrollmentData.paymentMethodId,
+                paymentType: enrollmentData.paymentType as any,
+                paymentDate: new Date().toISOString().split('T')[0],
+                referenceNumber: `REINS-${Date.now()}`,
+                notes: `Paiement initial réinscription ${enrollmentData.paymentType}`
+              });
+            }
+          }
+        }
+        
+        // Recharger les données
+        await loadAllData();
+        
+        const paymentMessage = enrollmentData.initialPayment > 0 
+          ? ` avec un paiement ${enrollmentData.paymentType.toLowerCase()} de ${enrollmentData.initialPayment.toLocaleString()} FCFA`
+          : ' sans paiement initial';
+        alert(`Inscription réussie ! ${enrollmentData.firstName} ${enrollmentData.lastName} a été inscrit(e) en ${enrollmentData.className}${paymentMessage}.`);
+        handleReset();
+        
+      } catch (error: any) {
+        console.error('Erreur lors de l\'inscription:', error);
+        alert(`Erreur lors de l'inscription: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleSubmitOld = () => {
+    if (validateStep('class')) {
       
       // Simulation de l'inscription
       setTimeout(() => {
@@ -841,7 +891,7 @@ const EnrollmentInterface: React.FC = () => {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            {step !== 'student' && (
+            {step !== 'student' && !loading && (
               <button
                 onClick={handleBack}
                 className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -862,6 +912,7 @@ const EnrollmentInterface: React.FC = () => {
             {step !== 'confirmation' ? (
               <button
                 onClick={handleNext}
+                disabled={loading}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Suivant
@@ -869,10 +920,20 @@ const EnrollmentInterface: React.FC = () => {
             ) : (
               <button
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                disabled={loading}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
               >
-                <UserPlus className="h-4 w-4" />
-                <span>Confirmer l'Inscription</span>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Inscription...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    <span>Confirmer l'Inscription</span>
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -880,7 +941,8 @@ const EnrollmentInterface: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-50 rounded-lg">
@@ -889,7 +951,7 @@ const EnrollmentInterface: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">Classes Disponibles</p>
               <p className="text-lg font-bold text-gray-800">
-                {availableClasses.filter(c => c.capacity > c.enrolled).length}
+                {loading ? '--' : availableClasses.filter(c => c.capacity > c.enrolled).length}
               </p>
             </div>
           </div>
@@ -903,7 +965,7 @@ const EnrollmentInterface: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">Places Libres</p>
               <p className="text-lg font-bold text-gray-800">
-                {availableClasses.reduce((sum, c) => sum + (c.capacity - c.enrolled), 0)}
+                {loading ? '--' : availableClasses.reduce((sum, c) => sum + (c.capacity - c.enrolled), 0)}
               </p>
             </div>
           </div>
@@ -916,7 +978,7 @@ const EnrollmentInterface: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Inscriptions Aujourd'hui</p>
-              <p className="text-lg font-bold text-gray-800">12</p>
+              <p className="text-lg font-bold text-gray-800">{loading ? '--' : '0'}</p>
             </div>
           </div>
         </div>
@@ -928,11 +990,19 @@ const EnrollmentInterface: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Année Active</p>
-              <p className="text-lg font-bold text-gray-800">{currentAcademicYear}</p>
+              <p className="text-lg font-bold text-gray-800">{currentAcademicYear?.name || currentAcademicYear}</p>
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
+      
+      {loading && (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des données...</p>
+        </div>
+      )}
     </div>
   );
 };

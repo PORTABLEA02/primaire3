@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { UserPlus, School, Calendar, Users, CheckCircle, AlertCircle, User, BookOpen } from 'lucide-react';
 import { useAcademicYear } from '../../contexts/AcademicYearContext';
+import { useAuth } from '../Auth/AuthProvider';
+import { PaymentService } from '../../services/paymentService';
+import { supabase } from '../../lib/supabase';
 
 interface EnrollmentData {
   studentId?: string; // Pour les étudiants existants
@@ -16,6 +19,7 @@ interface EnrollmentData {
   enrollmentDate: string;
   isNewStudent: boolean;
   paymentType: 'Inscription' | 'Scolarité';
+  paymentMethodId: string;
   initialPayment: number;
 }
 
@@ -44,6 +48,9 @@ interface ExistingStudent {
 const EnrollmentInterface: React.FC = () => {
   const [step, setStep] = useState<'student' | 'class' | 'confirmation'>('student');
   const { currentAcademicYear } = useAcademicYear();
+  const { userSchool } = useAuth();
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [feeTypes, setFeeTypes] = useState<any[]>([]);
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
     firstName: '',
     lastName: '',
@@ -57,11 +64,47 @@ const EnrollmentInterface: React.FC = () => {
     enrollmentDate: new Date().toISOString().split('T')[0],
     isNewStudent: true,
     paymentType: 'Inscription',
+    paymentMethodId: '',
     initialPayment: 0
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<ExistingStudent | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Charger les données au montage
+  React.useEffect(() => {
+    if (userSchool) {
+      loadPaymentData();
+    }
+  }, [userSchool]);
+
+  const loadPaymentData = async () => {
+    if (!userSchool) return;
+
+    try {
+      const [methods, fees] = await Promise.all([
+        PaymentService.getPaymentMethods(userSchool.id),
+        supabase
+          .from('fee_types')
+          .select('*')
+          .eq('school_id', userSchool.id)
+          .order('name')
+      ]);
+
+      setPaymentMethods(methods);
+      setFeeTypes(fees.data || []);
+
+      // Sélectionner la première méthode par défaut
+      if (methods.length > 0) {
+        setEnrollmentData(prev => ({
+          ...prev,
+          paymentMethodId: methods[0].id
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données de paiement:', error);
+    }
+  };
 
   // Classes disponibles avec places libres
   const availableClasses: ClassOption[] = [
@@ -269,7 +312,47 @@ const EnrollmentInterface: React.FC = () => {
     setEnrollmentData(prev => ({
       ...prev,
       classId: classOption.id,
-      className: classOption.name
+      className: classOption.name,
+      // Recalculer les frais selon le type sélectionné
+      initialPayment: 0 // Reset le paiement initial
+    }));
+    
+    // Recalculer les frais selon le type de paiement sélectionné
+    updateFeesForPaymentType(enrollmentData.paymentType, classOption.level);
+  };
+
+  const updateFeesForPaymentType = (paymentType: 'Inscription' | 'Scolarité', level: string) => {
+    let feeAmount = 0;
+    
+    if (paymentType === 'Inscription') {
+      const inscriptionFee = feeTypes.find(f => 
+        f.name.toLowerCase().includes('inscription') && 
+        (f.level === 'Tous' || f.level === level)
+      );
+      feeAmount = inscriptionFee?.amount || 50000;
+    } else {
+      const scolariteFee = feeTypes.find(f => 
+        f.name.toLowerCase().includes('scolarité') && 
+        f.level === level
+      );
+      feeAmount = scolariteFee?.amount || 350000;
+    }
+    
+    // Note: Cette fonction ne met pas à jour l'état directement
+    // Elle retourne la valeur pour être utilisée ailleurs
+    return feeAmount;
+  };
+
+  const handlePaymentTypeChange = (paymentType: 'Inscription' | 'Scolarité') => {
+    const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+    if (!selectedClass) return;
+
+    const feeAmount = updateFeesForPaymentType(paymentType, selectedClass.level);
+    
+    setEnrollmentData(prev => ({
+      ...prev,
+      paymentType,
+      initialPayment: feeAmount // Proposer le montant complet par défaut
     }));
   };
 
@@ -304,6 +387,7 @@ const EnrollmentInterface: React.FC = () => {
       enrollmentDate: new Date().toISOString().split('T')[0],
       isNewStudent: true,
       paymentType: 'Inscription',
+      paymentMethodId: paymentMethods.length > 0 ? paymentMethods[0].id : '',
       initialPayment: 0
     });
     setSelectedStudent(null);
@@ -725,7 +809,9 @@ const EnrollmentInterface: React.FC = () => {
               <div>
                 <p><strong>Enseignant:</strong> {availableClasses.find(c => c.id === enrollmentData.classId)?.teacher}</p>
                 <p><strong>Date d'inscription:</strong> {new Date(enrollmentData.enrollmentDate).toLocaleDateString('fr-FR')}</p>
-                <p><strong>Frais annuels:</strong> {availableClasses.find(c => c.id === enrollmentData.classId)?.fees.toLocaleString()} FCFA</p>
+                <p><strong>Type de frais:</strong> {enrollmentData.paymentType}</p>
+                <p><strong>Paiement initial:</strong> {enrollmentData.initialPayment.toLocaleString()} FCFA</p>
+                <p><strong>Méthode:</strong> {paymentMethods.find(m => m.id === enrollmentData.paymentMethodId)?.name || 'Non sélectionnée'}</p>
               </div>
             </div>
           </div>

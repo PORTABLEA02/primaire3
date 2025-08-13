@@ -131,19 +131,13 @@ const StudentManagement: React.FC = () => {
       
       // Si un paiement initial est effectué, l'enregistrer
       if (enrollmentData.initialPayment > 0) {
-        // Obtenir l'ID de la méthode de paiement
-        const paymentMethod = await PaymentService.getPaymentMethodByName(
-          userSchool.id, 
-          enrollmentData.paymentMethod
-        );
-        
         await PaymentService.recordPayment({
           enrollmentId: enrollment.id,
           schoolId: userSchool.id,
           academicYearId: currentAcademicYear.id,
           amount: enrollmentData.initialPayment,
-          paymentMethodId: paymentMethod?.id,
-          paymentType: 'Inscription',
+          paymentMethodId: enrollmentData.paymentMethodId,
+          paymentType: enrollmentData.paymentType,
           paymentDate: new Date().toISOString().split('T')[0],
           referenceNumber: `INS-${Date.now()}`,
           mobileNumber: enrollmentData.mobileNumber,
@@ -158,7 +152,7 @@ const StudentManagement: React.FC = () => {
           action: 'RECORD_INITIAL_PAYMENT',
           entityType: 'payment',
           level: 'success',
-          details: `Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour ${studentData.firstName} ${studentData.lastName}`
+          details: `Paiement initial ${enrollmentData.paymentType} de ${enrollmentData.initialPayment.toLocaleString()} FCFA pour ${studentData.firstName} ${studentData.lastName}`
         });
       }
       
@@ -167,7 +161,7 @@ const StudentManagement: React.FC = () => {
       await loadStats();
       
       const message = enrollmentData.initialPayment > 0 
-        ? `Élève inscrit avec succès ! Paiement initial de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`
+        ? `Élève inscrit avec succès ! Paiement initial ${enrollmentData.paymentType} de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`
         : 'Élève inscrit avec succès !';
       alert(message);
     } catch (error: any) {

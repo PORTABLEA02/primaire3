@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Users, Phone, Mail, MapPin, Calendar, DollarSign, BookOpen, AlertCircle } from 'lucide-react';
 import { useAuth } from '../Auth/AuthProvider';
 import { StudentService } from '../../services/studentService';
+import { PaymentService } from '../../services/paymentService';
+import { supabase } from '../../lib/supabase';
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -42,7 +44,8 @@ interface EnrollmentData {
   classId: string;
   totalFees: number;
   initialPayment: number;
-  paymentMethod: 'Espèces' | 'Mobile Money' | 'Virement Bancaire';
+  paymentMethodId: string;
+  paymentType: 'Inscription' | 'Scolarité';
   mobileNumber?: string;
   bankDetails?: string;
   notes?: string;
@@ -56,6 +59,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
   const { userSchool, currentAcademicYear } = useAuth();
   const [step, setStep] = useState<'student' | 'parent' | 'financial' | 'confirmation'>('student');
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [feeTypes, setFeeTypes] = useState<any[]>([]);
   const [studentData, setStudentData] = useState<NewStudentData>({
     firstName: '',
     lastName: '',
@@ -89,7 +94,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
     classId: '',
     totalFees: 0,
     initialPayment: 0,
-    paymentMethod: 'Espèces',
+    paymentMethodId: '',
+    paymentType: 'Inscription',
     notes: ''
   });
 
@@ -99,6 +105,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
   useEffect(() => {
     if (isOpen && userSchool && currentAcademicYear) {
       loadAvailableClasses();
+      loadPaymentMethods();
+      loadFeeTypes();
     }
   }, [isOpen, userSchool, currentAcademicYear]);
 
@@ -115,6 +123,42 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       setAvailableClasses(availableClasses);
     } catch (error) {
       console.error('Erreur lors du chargement des classes:', error);
+    }
+  };
+
+  const loadPaymentMethods = async () => {
+    if (!userSchool) return;
+
+    try {
+      const methods = await PaymentService.getPaymentMethods(userSchool.id);
+      setPaymentMethods(methods);
+      
+      // Sélectionner la première méthode par défaut
+      if (methods.length > 0) {
+        setEnrollmentData(prev => ({
+          ...prev,
+          paymentMethodId: methods[0].id
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des méthodes de paiement:', error);
+    }
+  };
+
+  const loadFeeTypes = async () => {
+    if (!userSchool) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('fee_types')
+        .select('*')
+        .eq('school_id', userSchool.id)
+        .order('name');
+
+      if (error) throw error;
+      setFeeTypes(data || []);
+    } catch (error) {
+      console.error('Erreur lors du chargement des types de frais:', error);
     }
   };
 
@@ -169,10 +213,12 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       if (enrollmentData.initialPayment > enrollmentData.totalFees) {
         newErrors.initialPayment = 'Le paiement initial ne peut pas dépasser les frais totaux';
       }
-      if (enrollmentData.paymentMethod === 'Mobile Money' && !enrollmentData.mobileNumber) {
+      
+      const selectedMethod = paymentMethods.find(m => m.id === enrollmentData.paymentMethodId);
+      if (selectedMethod?.type === 'mobile' && !enrollmentData.mobileNumber) {
         newErrors.mobileNumber = 'Numéro de téléphone requis pour Mobile Money';
       }
-      if (enrollmentData.paymentMethod === 'Virement Bancaire' && !enrollmentData.bankDetails) {
+      if (selectedMethod?.type === 'bank' && !enrollmentData.bankDetails) {
         newErrors.bankDetails = 'Détails bancaires requis pour le virement';
       }
     }
@@ -265,7 +311,8 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       classId: '',
       totalFees: 0,
       initialPayment: 0,
-      paymentMethod: 'Espèces',
+      paymentMethodId: '',
+      paymentType: 'Inscription',
       notes: ''
     });
     setErrors({});
@@ -275,24 +322,68 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
   const handleClassChange = (classId: string) => {
     const selectedClass = availableClasses.find(c => c.id === classId);
     if (selectedClass) {
-      // Calculer les frais selon le niveau
-      const feesByLevel: Record<string, number> = {
-        'Maternelle': 300000,
-        'CI': 350000,
-        'CP': 350000,
-        'CE1': 400000,
-        'CE2': 400000,
-        'CM1': 450000,
-        'CM2': 450000
-      };
-
-      const fees = feesByLevel[selectedClass.level] || 350000;
-
       setEnrollmentData(prev => ({
         ...prev,
-        classId: classId,
-        totalFees: fees
+        classId: classId
       }));
+    }
+  };
+
+  const handlePaymentTypeChange = (paymentType: 'Inscription' | 'Scolarité') => {
+    // Trouver le type de frais correspondant
+    const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+    if (!selectedClass) return;
+
+    let feeAmount = 0;
+    
+    if (paymentType === 'Inscription') {
+      // Chercher les frais d'inscription
+      const inscriptionFee = feeTypes.find(f => 
+        f.name.toLowerCase().includes('inscription') && 
+        (f.level === 'Tous' || f.level === selectedClass.level)
+      );
+      feeAmount = inscriptionFee?.amount || 50000; // Valeur par défaut
+    } else {
+      // Chercher les frais de scolarité pour ce niveau
+      const scolariteFee = feeTypes.find(f => 
+        f.name.toLowerCase().includes('scolarité') && 
+        f.level === selectedClass.level
+      );
+      feeAmount = scolariteFee?.amount || 350000; // Valeur par défaut
+    }
+
+    setEnrollmentData(prev => ({
+      ...prev,
+      paymentType,
+      totalFees: feeAmount,
+      initialPayment: 0 // Reset le paiement initial
+    }));
+  };
+
+  const handlePaymentMethodChange = (methodId: string) => {
+    setEnrollmentData(prev => ({
+      ...prev,
+      paymentMethodId: methodId,
+      mobileNumber: '',
+      bankDetails: ''
+    }));
+  };
+
+  const getPaymentMethodIcon = (type: string) => {
+    switch (type) {
+      case 'cash': return DollarSign;
+      case 'mobile': return Phone;
+      case 'bank': return BookOpen;
+      default: return DollarSign;
+    }
+  };
+
+  const getPaymentMethodColor = (type: string) => {
+    switch (type) {
+      case 'cash': return 'green';
+      case 'mobile': return 'blue';
+      case 'bank': return 'purple';
+      default: return 'gray';
     }
   };
 
@@ -772,6 +863,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
           {/* Step 3: Financial Information */}
           {step === 'financial' && (
             <div className="space-y-6">
+              {/* Sélection de la classe */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Classe *
@@ -793,11 +885,93 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 {errors.classId && <p className="text-red-500 text-sm mt-1">{errors.classId}</p>}
               </div>
 
+              {/* Type de paiement */}
               {enrollmentData.classId && (
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-800 mb-2">Frais de Scolarité</h4>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <p><strong>Frais annuels:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Type de Frais à Payer *
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div
+                        onClick={() => handlePaymentTypeChange('Inscription')}
+                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          enrollmentData.paymentType === 'Inscription'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <User className={`h-5 w-5 ${
+                            enrollmentData.paymentType === 'Inscription' ? 'text-blue-600' : 'text-gray-400'
+                          }`} />
+                          <div>
+                            <h4 className={`font-medium ${
+                              enrollmentData.paymentType === 'Inscription' ? 'text-blue-800' : 'text-gray-700'
+                            }`}>
+                              Frais d'Inscription
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {feeTypes.find(f => f.name.toLowerCase().includes('inscription'))?.amount.toLocaleString() || '50,000'} FCFA
+                            </p>
+                            <p className="text-xs text-gray-500">Paiement unique à l'inscription</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => handlePaymentTypeChange('Scolarité')}
+                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          enrollmentData.paymentType === 'Scolarité'
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 hover:border-green-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <BookOpen className={`h-5 w-5 ${
+                            enrollmentData.paymentType === 'Scolarité' ? 'text-green-600' : 'text-gray-400'
+                          }`} />
+                          <div>
+                            <h4 className={`font-medium ${
+                              enrollmentData.paymentType === 'Scolarité' ? 'text-green-800' : 'text-gray-700'
+                            }`}>
+                              Frais de Scolarité
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {(() => {
+                                const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+                                const scolariteFee = feeTypes.find(f => 
+                                  f.name.toLowerCase().includes('scolarité') && 
+                                  f.level === selectedClass?.level
+                                );
+                                return scolariteFee?.amount.toLocaleString() || '350,000';
+                              })()} FCFA
+                            </p>
+                            <p className="text-xs text-gray-500">Frais annuels de scolarité</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Affichage des frais sélectionnés */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-800 mb-2">
+                      Frais Sélectionnés: {enrollmentData.paymentType}
+                    </h4>
+                    <div className="text-sm text-gray-700 space-y-1">
+                      <p><strong>Montant total:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
+                      {enrollmentData.paymentType === 'Scolarité' && (
+                        <p className="text-xs text-gray-600">
+                          Note: Les frais de scolarité peuvent être payés en plusieurs tranches
+                        </p>
+                      )}
+                      {enrollmentData.paymentType === 'Inscription' && (
+                        <p className="text-xs text-gray-600">
+                          Note: Les frais d'inscription sont généralement payés en une seule fois
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -827,30 +1001,34 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Méthode de Paiement *
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { value: 'Espèces', label: 'Espèces', icon: DollarSign, color: 'green' },
-                    { value: 'Mobile Money', label: 'Mobile Money', icon: Phone, color: 'blue' },
-                    { value: 'Virement Bancaire', label: 'Virement Bancaire', icon: BookOpen, color: 'purple' }
-                  ].map(method => {
-                    const Icon = method.icon;
-                    const isSelected = enrollmentData.paymentMethod === method.value;
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paymentMethods.map(method => {
+                    const Icon = getPaymentMethodIcon(method.type);
+                    const color = getPaymentMethodColor(method.type);
+                    const isSelected = enrollmentData.paymentMethodId === method.id;
                     
                     return (
                       <div
-                        key={method.value}
-                        onClick={() => setEnrollmentData(prev => ({ ...prev, paymentMethod: method.value as any }))}
+                        key={method.id}
+                        onClick={() => handlePaymentMethodChange(method.id)}
                         className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
                           isSelected 
-                            ? `border-${method.color}-500 bg-${method.color}-50` 
+                            ? `border-${color}-500 bg-${color}-50` 
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-center space-x-3">
-                          <Icon className={`h-5 w-5 ${isSelected ? `text-${method.color}-600` : 'text-gray-400'}`} />
-                          <span className={`font-medium ${isSelected ? `text-${method.color}-800` : 'text-gray-700'}`}>
-                            {method.label}
-                          </span>
+                          <Icon className={`h-5 w-5 ${isSelected ? `text-${color}-600` : 'text-gray-400'}`} />
+                          <div>
+                            <span className={`font-medium ${isSelected ? `text-${color}-800` : 'text-gray-700'}`}>
+                              {method.name}
+                            </span>
+                            {method.fees_percentage > 0 && (
+                              <p className="text-xs text-gray-500">
+                                Frais: {method.fees_percentage}%
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -859,7 +1037,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
               </div>
 
               {/* Additional Fields based on Payment Method */}
-              {enrollmentData.paymentMethod === 'Mobile Money' && (
+              {paymentMethods.find(m => m.id === enrollmentData.paymentMethodId)?.type === 'mobile' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Numéro de Téléphone *
@@ -877,7 +1055,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                 </div>
               )}
 
-              {enrollmentData.paymentMethod === 'Virement Bancaire' && (
+              {paymentMethods.find(m => m.id === enrollmentData.paymentMethodId)?.type === 'bank' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Référence Bancaire *
@@ -959,9 +1137,10 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                     <p><strong>Niveau:</strong> {availableClasses.find(c => c.id === enrollmentData.classId)?.level}</p>
                   </div>
                   <div>
-                    <p><strong>Frais annuels:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
+                    <p><strong>Type de frais:</strong> {enrollmentData.paymentType}</p>
+                    <p><strong>Montant:</strong> {enrollmentData.totalFees.toLocaleString()} FCFA</p>
                     <p><strong>Paiement initial:</strong> {enrollmentData.initialPayment.toLocaleString()} FCFA</p>
-                    <p><strong>Méthode:</strong> {enrollmentData.paymentMethod}</p>
+                    <p><strong>Méthode:</strong> {paymentMethods.find(m => m.id === enrollmentData.paymentMethodId)?.name}</p>
                   </div>
                 </div>
               </div>

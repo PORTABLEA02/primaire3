@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Users, BookOpen, User, MapPin, Calendar, Edit, Save, Phone, Mail, Award, Clock, TrendingUp, RefreshCw } from 'lucide-react';
 import { ClassService } from '../../services/classService';
 import { useAuth } from '../Auth/AuthProvider';
+import { supabase } from '../../lib/supabase';
 
 interface ClassDetailModalProps {
   isOpen: boolean;
@@ -11,18 +12,6 @@ interface ClassDetailModalProps {
 }
 
 
-interface Student {
-  id: string;
-  firstName: string;
-  lastName: string;
-  age: number;
-  parentPhone: string;
-  parentEmail: string;
-  enrollmentDate: string;
-  paymentStatus: 'À jour' | 'En retard' | 'Partiel';
-  lastGrade?: number;
-  attendance: number;
-}
 
 const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   isOpen,
@@ -36,6 +25,7 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
   const [editData, setEditData] = useState(classData);
   const [classStudents, setClassStudents] = useState<any[]>([]);
   const [classStats, setClassStats] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   // Charger les données de la classe
   useEffect(() => {
@@ -48,18 +38,36 @@ const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     if (!classData || !userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
 
-      const [students, stats] = await Promise.all([
+      const [students] = await Promise.all([
         ClassService.getClassDetails(classData.id, currentAcademicYear.id),
-        ClassService.getClassStats(classData.id, currentAcademicYear.id)
+        // Note: getClassStats nécessite un gradePeriodId, on le charge séparément si nécessaire
       ]);
 
       setClassStudents(students);
-      setClassStats(stats);
+      
+      // Charger les stats si on a une période active
+      try {
+        const { data: activePeriod } = await supabase
+          .from('grade_periods')
+          .select('id')
+          .eq('school_id', userSchool.id)
+          .eq('is_active', true)
+          .single();
+          
+        if (activePeriod) {
+          const stats = await ClassService.getClassStats(classData.id, activePeriod.id);
+          setClassStats(stats);
+        }
+      } catch (error) {
+        console.log('Aucune période d\'évaluation active trouvée');
+      }
 
     } catch (error) {
       console.error('Erreur lors du chargement des données de la classe:', error);
     } finally {
+      setLoading(false);
     }
   };
 

@@ -78,6 +78,7 @@ const ClassManagement: React.FC = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignment[]>([]);
   const [availableTeachers, setAvailableTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Modals state
@@ -99,6 +100,7 @@ const ClassManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
       setError(null);
 
       const [classesData, assignmentsData, teachersData] = await Promise.all([
@@ -115,6 +117,7 @@ const ClassManagement: React.FC = () => {
       console.error('Erreur lors du chargement des données:', error);
       setError(error.message || 'Erreur lors du chargement des données');
     } finally {
+      setLoading(false);
     }
   };
 
@@ -140,6 +143,7 @@ const ClassManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
       await ClassService.createClass({
         schoolId: userSchool.id,
         academicYearId: currentAcademicYear.id,
@@ -151,8 +155,9 @@ const ClassManagement: React.FC = () => {
 
       // Si un enseignant est assigné, créer l'affectation
       if (classData.teacherId) {
-        const newClass = await ClassService.getClasses(userSchool.id, currentAcademicYear.id);
-        const createdClass = newClass.find(c => c.name === classData.name);
+        // Recharger les classes pour obtenir l'ID de la nouvelle classe
+        const updatedClasses = await ClassService.getClasses(userSchool.id, currentAcademicYear.id);
+        const createdClass = updatedClasses.find(c => c.name === classData.name);
         
         if (createdClass) {
           await TeacherService.assignTeacherToClass({
@@ -178,6 +183,8 @@ const ClassManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors de la création:', error);
       alert(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -185,6 +192,7 @@ const ClassManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
       for (const assignment of assignments) {
         await TeacherService.assignTeacherToClass({
           teacherId: assignment.teacherId,
@@ -208,6 +216,8 @@ const ClassManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors des affectations:', error);
       alert(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,6 +238,7 @@ const ClassManagement: React.FC = () => {
 
   const handleUpdateClass = async (updatedClass: any) => {
     try {
+      setLoading(true);
       await ClassService.updateClass(updatedClass.id, {
         name: updatedClass.name,
         capacity: updatedClass.capacity,
@@ -239,6 +250,8 @@ const ClassManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
       alert(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -246,6 +259,7 @@ const ClassManagement: React.FC = () => {
     if (!userSchool || !currentAcademicYear) return;
 
     try {
+      setLoading(true);
       await TeacherService.changeTeacherAssignment(
         newTeacherId,
         classId,
@@ -267,8 +281,21 @@ const ClassManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Erreur lors du changement:', error);
       alert(`Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 text-blue-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Chargement des classes...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -301,14 +328,16 @@ const ClassManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button 
             onClick={loadData}
+            disabled={loading}
             className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Actualiser</span>
           </button>
           
           <button 
             onClick={() => setShowAddModal(true)}
+            disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
           >
             <Plus className="h-4 w-4" />
@@ -318,7 +347,8 @@ const ClassManagement: React.FC = () => {
       </div>
 
       {/* Levels Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-4">
+      {levelStats.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3 sm:gap-4">
         {levelStats.map((level, index) => (
           <div key={index} className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between mb-3">
@@ -340,7 +370,8 @@ const ClassManagement: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* Classes Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -368,7 +399,7 @@ const ClassManagement: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {classes.map((classItem) => {
                 const fillRate = (classItem.current_students / classItem.capacity) * 100;
-                const teacher = classItem.teacher_assignment?.teacher;
+                const teacher = classItem.teacher_assignment?.[0]?.teacher;
                 
                 return (
                   <tr key={classItem.id} className="hover:bg-gray-50 transition-colors">
@@ -496,6 +527,7 @@ const ClassManagement: React.FC = () => {
           </div>
           <button 
             onClick={() => setShowAssignmentModal(true)}
+            disabled={loading}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm sm:text-base whitespace-nowrap"
           >
             Gérer les Affectations
@@ -506,7 +538,7 @@ const ClassManagement: React.FC = () => {
           <div className="p-4 border border-gray-100 rounded-lg">
             <p className="text-xs sm:text-sm text-gray-600">Classes sans enseignant</p>
             <p className="text-xl sm:text-2xl font-bold text-red-600">
-              {classes.filter(c => !c.teacher_assignment?.teacher).length}
+              {classes.filter(c => !c.teacher_assignment || c.teacher_assignment.length === 0).length}
             </p>
           </div>
           <div className="p-4 border border-gray-100 rounded-lg">
@@ -563,7 +595,7 @@ const ClassManagement: React.FC = () => {
             classData={selectedClass}
           />
 
-          {selectedClass.teacher_assignment?.teacher && (
+          {selectedClass.teacher_assignment?.[0]?.teacher && (
             <ChangeTeacherModal
               isOpen={showChangeTeacherModal}
               onClose={() => {
@@ -574,7 +606,7 @@ const ClassManagement: React.FC = () => {
                 id: selectedClass.id,
                 name: selectedClass.name,
                 level: selectedClass.level,
-                teacher: `${selectedClass.teacher_assignment.teacher.first_name} ${selectedClass.teacher_assignment.teacher.last_name}`,
+                teacher: `${selectedClass.teacher_assignment[0].teacher.first_name} ${selectedClass.teacher_assignment[0].teacher.last_name}`,
                 teacherId: 'current-teacher-id',
                 subjects: selectedClass.subjects || []
               }}

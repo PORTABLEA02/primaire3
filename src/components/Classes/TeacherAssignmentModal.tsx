@@ -83,8 +83,16 @@ const TeacherAssignmentModal: React.FC<TeacherAssignmentModalProps> = ({
       setAvailableTeachers(teachers);
       
       // Séparer les classes avec et sans enseignant
-      const withoutTeacher = allClasses.filter(c => !c.teacher_assignment || c.teacher_assignment.length === 0);
-      const withTeacher = allClasses.filter(c => c.teacher_assignment && c.teacher_assignment.length > 0);
+      const withoutTeacher = allClasses.filter(c => 
+        !c.teacher_assignment || 
+        c.teacher_assignment.length === 0 || 
+        !c.teacher_assignment.some(ta => ta.is_active)
+      );
+      const withTeacher = allClasses.filter(c => 
+        c.teacher_assignment && 
+        c.teacher_assignment.length > 0 && 
+        c.teacher_assignment.some(ta => ta.is_active)
+      );
       
       setClassesWithoutTeacher(withoutTeacher);
       setAssignedClasses(withTeacher);

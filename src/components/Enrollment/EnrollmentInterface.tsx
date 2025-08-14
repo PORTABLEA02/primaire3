@@ -156,8 +156,10 @@ const EnrollmentInterface: React.FC = () => {
   const getFeeForLevel = (level: string): number => {
     const fee = feeTypes.find(f => 
       f.name.toLowerCase().includes('scolarité') && 
-      (f.level === level || f.level === 'Tous')
+      (f.level.toLowerCase() === level.toLowerCase() || f.level === 'Tous')
     );
+    console.log(f.level.toLowerCase());
+    console.log(level.toLowerCase());
     return fee?.amount || 350000;
   };
 

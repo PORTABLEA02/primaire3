@@ -65,7 +65,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
     firstName: '',
     lastName: '',
     gender: 'Masculin',
-    nationality: 'Malienne',
+    nationality: 'Béninoise',
     birthPlace: '',
     religion: '',
     bloodType: '',
@@ -154,9 +154,12 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
         .select('*')
         .eq('school_id', userSchool.id)
         .order('name');
+       
 
       if (error) throw error;
       setFeeTypes(data || []);
+      console.log(data);
+      
     } catch (error) {
       console.error('Erreur lors du chargement des types de frais:', error);
     }
@@ -320,12 +323,15 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
   };
 
   const handleClassChange = (classId: string) => {
+        
+
     const selectedClass = availableClasses.find(c => c.id === classId);
     if (selectedClass) {
       setEnrollmentData(prev => ({
         ...prev,
         classId: classId
       }));
+       
     }
   };
 
@@ -338,25 +344,31 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
     
     if (paymentType === 'Inscription') {
       // Chercher les frais d'inscription
+        
+
       const inscriptionFee = feeTypes.find(f => 
         f.name.toLowerCase().includes('inscription') && 
-        (f.level === 'Tous' || f.level === selectedClass.level)
+        (f.level.toLowerCase() === selectedClass.level.toLowerCase())
       );
+       
       feeAmount = inscriptionFee?.amount || 50000; // Valeur par défaut
+      
     } else {
       // Chercher les frais de scolarité pour ce niveau
       const scolariteFee = feeTypes.find(f => 
         f.name.toLowerCase().includes('scolarité') && 
-        f.level === selectedClass.level
+        f.level.toLowerCase() === selectedClass.level.toLowerCase()
       );
       feeAmount = scolariteFee?.amount || 350000; // Valeur par défaut
     }
+    console.log(feeAmount);
 
     setEnrollmentData(prev => ({
       ...prev,
       paymentType,
       totalFees: feeAmount,
       initialPayment: 0 // Reset le paiement initial
+        
     }));
   };
 
@@ -367,6 +379,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       mobileNumber: '',
       bankDetails: ''
     }));
+
   };
 
   const getPaymentMethodIcon = (type: string) => {
@@ -835,7 +848,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                       type="tel"
                       value={studentData.emergencyContactPhone}
                       onChange={(e) => setStudentData(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
-                      placeholder="+229 XX XX XX XX"
+                      placeholder="+229 01 XX XX XX XX"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         errors.emergencyContactPhone ? 'border-red-300' : 'border-gray-200'
                       }`}
@@ -912,8 +925,15 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                               Frais d'Inscription
                             </h4>
                             <p className="text-sm text-gray-600">
-                              {feeTypes.find(f => f.name.toLowerCase().includes('inscription'))?.amount.toLocaleString() || '50,000'} FCFA
-                            </p>
+                            {(() => {
+                                const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
+                                const scolariteFee = feeTypes.find(f => 
+                                  f.name.toLowerCase().includes('inscription') && 
+                                  f.level.toLowerCase() === selectedClass?.level.toLowerCase()
+                                );
+                                return scolariteFee?.amount.toLocaleString() || '5,000';
+                              })()} FCFA
+                              </p>
                             <p className="text-xs text-gray-500">Paiement unique à l'inscription</p>
                           </div>
                         </div>
@@ -942,7 +962,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
                                 const selectedClass = availableClasses.find(c => c.id === enrollmentData.classId);
                                 const scolariteFee = feeTypes.find(f => 
                                   f.name.toLowerCase().includes('scolarité') && 
-                                  f.level === selectedClass?.level
+                                  f.level.toLowerCase() === selectedClass?.level.toLowerCase()
                                 );
                                 return scolariteFee?.amount.toLocaleString() || '350,000';
                               })()} FCFA

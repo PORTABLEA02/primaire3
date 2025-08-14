@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Users, Plus, RefreshCw, AlertCircle, Upload } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
 import StudentDetailModal from './StudentDetailModal';
 import TransferStudentModal from './TransferStudentModal';
 import StudentStatsCard from './StudentStatsCard';
 import StudentFilters from './StudentFilters';
 import StudentTable from './StudentTable';
+import ImportButton from '../Import/ImportButton';
 import { useAuth } from '../Auth/AuthProvider';
 import { StudentService } from '../../services/studentService';
 import { PaymentService } from '../../services/paymentService';
@@ -259,6 +260,10 @@ const StudentManagement: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-3">
+          <ImportButton 
+            onImportComplete={loadStudents}
+            variant="secondary"
+          />
           <button 
             onClick={() => setShowAddStudentModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"

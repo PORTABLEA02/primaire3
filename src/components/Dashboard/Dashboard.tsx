@@ -5,6 +5,7 @@ import StatsCards from './StatsCards';
 import RecentActivities from './RecentActivities';
 import QuickActions from './QuickActions';
 import AcademicOverview from './AcademicOverview';
+import ImportStatsCard from '../Import/ImportStatsCard';
 
 const Dashboard: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
@@ -61,8 +62,9 @@ const Dashboard: React.FC = () => {
           <RecentActivities />
         </div>
         
-        <div>
+        <div className="space-y-6">
           <QuickActions />
+          <ImportStatsCard />
         </div>
       </div>
     </div>

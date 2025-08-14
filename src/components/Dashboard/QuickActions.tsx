@@ -1,6 +1,7 @@
 import React from 'react';
-import { Plus, FileText, Calendar, Users } from 'lucide-react';
+import { Plus, FileText, Calendar, Users, Upload } from 'lucide-react';
 import { useRouter } from '../../contexts/RouterContext';
+import ImportButton from '../Import/ImportButton';
 
 const QuickActions: React.FC = () => {
   const { navigate } = useRouter();
@@ -70,6 +71,15 @@ const QuickActions: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-gray-100">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Import en Masse</h3>
+        <ImportButton 
+          variant="secondary" 
+          size="sm"
+          className="w-full"
+        />
       </div>
 
       <div className="mt-6 pt-6 border-t border-gray-100">

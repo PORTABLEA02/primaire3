@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, UserPlus, FileText, Calendar } from 'lucide-react';
+import { Plus, FileText, Calendar, Users } from 'lucide-react';
 import { useRouter } from '../../contexts/RouterContext';
 
 const QuickActions: React.FC = () => {
@@ -7,11 +7,11 @@ const QuickActions: React.FC = () => {
 
   const quickActions = [
     {
-      title: 'Inscription',
-      description: 'Inscrire un élève',
-      icon: UserPlus,
+      title: 'Gestion Élèves',
+      description: 'Gérer les élèves',
+      icon: Users,
       color: 'blue',
-      action: () => navigate('enrollment')
+      action: () => navigate('students')
     },
     {
       title: 'Nouveau Paiement',

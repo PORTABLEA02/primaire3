@@ -30,7 +30,7 @@ export const AcademicYearProvider: React.FC<AcademicYearProviderProps> = ({ chil
 
   useEffect(() => {
     // Si l'utilisateur est authentifié et a une année scolaire active, l'utiliser
-    if (isAuthenticated && authAcademicYear && authAcademicYear.name) {
+    if (isAuthenticated && authAcademicYear) {
       setCurrentAcademicYearState(authAcademicYear.name);
       // Ajouter l'année à la liste si elle n'y est pas
       setAvailableYears(prev => {

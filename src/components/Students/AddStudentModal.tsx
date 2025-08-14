@@ -367,7 +367,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       ...prev,
       paymentType,
       totalFees: feeAmount,
-      initialPayment: 0 // Reset le paiement initial
+      initialPayment: feeAmount // Reset le paiement initial
         
     }));
   };

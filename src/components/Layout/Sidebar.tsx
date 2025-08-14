@@ -25,7 +25,6 @@ interface SidebarProps {
 
 const menuItems = [
   { id: 'dashboard', label: 'Tableau de Bord', icon: Home },
-  { id: 'enrollment', label: 'Inscription', icon: UserPlus },
   { id: 'students', label: 'Élèves', icon: Users },
   { id: 'classes', label: 'Classes & Niveaux', icon: GraduationCap },
   { id: 'finance', label: 'Gestion Financière', icon: DollarSign },

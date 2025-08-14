@@ -7,7 +7,6 @@ export class RouteUtils {
   static getRouteTitle(route: RouteModule): string {
     const titles: Record<RouteModule, string> = {
       dashboard: 'Tableau de Bord',
-      enrollment: 'Inscription d\'Élève',
       students: 'Gestion des Élèves',
       classes: 'Gestion des Classes',
       finance: 'Gestion Financière',
@@ -23,7 +22,6 @@ export class RouteUtils {
   static getRouteDescription(route: RouteModule): string {
     const descriptions: Record<RouteModule, string> = {
       dashboard: 'Vue d\'ensemble de l\'école et statistiques',
-      enrollment: 'Interface simplifiée pour inscrire de nouveaux élèves',
       students: 'Gestion complète des élèves inscrits',
       classes: 'Configuration des classes et affectation des enseignants',
       finance: 'Suivi des paiements et gestion financière',
@@ -39,7 +37,6 @@ export class RouteUtils {
   static getRouteIcon(route: RouteModule): string {
     const icons: Record<RouteModule, string> = {
       dashboard: 'Home',
-      enrollment: 'UserPlus',
       students: 'Users',
       classes: 'GraduationCap',
       finance: 'DollarSign',
@@ -57,7 +54,7 @@ export class RouteUtils {
   }
 
   static requiresAcademicYear(route: RouteModule): boolean {
-    return ['students', 'classes', 'finance', 'academic', 'enrollment'].includes(route);
+    return ['students', 'classes', 'finance', 'academic'].includes(route);
   }
 
   // Obtenir les routes recommandées selon le rôle
@@ -65,7 +62,7 @@ export class RouteUtils {
     const recommendations: Record<string, RouteModule[]> = {
       'Admin': ['dashboard', 'settings', 'teachers', 'classes', 'students', 'finance'],
       'Directeur': ['dashboard', 'students', 'teachers', 'classes', 'academic', 'finance'],
-      'Secrétaire': ['dashboard', 'enrollment', 'students', 'classes'],
+      'Secrétaire': ['dashboard', 'students', 'classes'],
       'Enseignant': ['dashboard', 'academic', 'students'],
       'Comptable': ['dashboard', 'finance', 'students']
     };
@@ -77,7 +74,7 @@ export class RouteUtils {
     const defaults: Record<string, RouteModule> = {
       'Admin': 'dashboard',
       'Directeur': 'dashboard',
-      'Secrétaire': 'enrollment',
+      'Secrétaire': 'students',
       'Enseignant': 'academic',
       'Comptable': 'finance'
     };
@@ -120,10 +117,6 @@ export class RouteUtils {
   static getBreadcrumbs(route: RouteModule): Array<{ label: string; route?: RouteModule }> {
     const breadcrumbs: Record<RouteModule, Array<{ label: string; route?: RouteModule }>> = {
       dashboard: [{ label: 'Tableau de Bord' }],
-      enrollment: [
-        { label: 'Tableau de Bord', route: 'dashboard' },
-        { label: 'Inscription' }
-      ],
       students: [
         { label: 'Tableau de Bord', route: 'dashboard' },
         { label: 'Gestion des Élèves' }

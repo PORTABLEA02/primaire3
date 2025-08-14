@@ -204,24 +204,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (createError) {
           console.error('Erreur lors de la création de l\'année par défaut:', createError);
-          setCurrentAcademicYear(null);
         } else {
-          // Vérifier que l'année créée a un ID valide
-          if (newYear && newYear.id) {
-            setCurrentAcademicYear(newYear);
-          } else {
-            console.error('L\'année créée n\'a pas d\'ID valide');
-            setCurrentAcademicYear(null);
-          }
+          setCurrentAcademicYear(newYear);
         }
       } else {
-        // Vérifier que l'année active a un ID valide
-        if (activeYear && activeYear.id) {
-          setCurrentAcademicYear(activeYear);
-        } else {
-          console.error('L\'année active n\'a pas d\'ID valide');
-          setCurrentAcademicYear(null);
-        }
+        setCurrentAcademicYear(activeYear);
       }
       // Mapper vers notre type User
       const userData: UserType = {

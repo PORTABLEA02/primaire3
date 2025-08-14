@@ -9,7 +9,6 @@ import AcademicManagement from '../Academic/AcademicManagement';
 import TeacherManagement from '../Teachers/TeacherManagement';
 import Settings from '../Settings/Settings';
 import ScheduleManagement from '../Schedule/ScheduleManagement';
-import EnrollmentInterface from '../Enrollment/EnrollmentInterface';
 import RouteGuard from './RouteGuard';
 
 const NavigationManager: React.FC = () => {
@@ -22,13 +21,6 @@ const NavigationManager: React.FC = () => {
         return (
           <RouteGuard>
             <Dashboard />
-          </RouteGuard>
-        );
-      
-      case 'enrollment':
-        return (
-          <RouteGuard>
-            <EnrollmentInterface />
           </RouteGuard>
         );
       

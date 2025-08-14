@@ -3,7 +3,6 @@ import { useAuth } from '../components/Auth/AuthProvider';
 
 export type RouteModule = 
   | 'dashboard' 
-  | 'enrollment' 
   | 'students' 
   | 'classes' 
   | 'finance' 
@@ -43,7 +42,6 @@ export const RouterProvider: React.FC<RouterProviderProps> = ({ children }) => {
   // Définition des permissions requises pour chaque route
   const routePermissions: Record<RouteModule, string | null> = {
     dashboard: null, // Accessible à tous les utilisateurs connectés
-    enrollment: 'students',
     students: 'students',
     classes: 'classes',
     finance: 'finance',

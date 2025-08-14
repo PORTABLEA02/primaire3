@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { UserPlus, School, Calendar, Users, CheckCircle, AlertCircle, User, BookOpen } from 'lucide-react';
-import { useAcademicYear } from '../../contexts/AcademicYearContext';
 import { useAuth } from '../Auth/AuthProvider';
 import { PaymentService } from '../../services/paymentService';
 import { StudentService } from '../../services/studentService';
@@ -49,8 +48,7 @@ interface ExistingStudent {
 
 const EnrollmentInterface: React.FC = () => {
   const [step, setStep] = useState<'student' | 'class' | 'confirmation'>('student');
-  const { currentAcademicYear } = useAcademicYear();
-  const { userSchool } = useAuth();
+  const { userSchool, currentAcademicYear } = useAuth();
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [feeTypes, setFeeTypes] = useState<any[]>([]);
   const [enrollmentData, setEnrollmentData] = useState<EnrollmentData>({
@@ -83,10 +81,10 @@ const EnrollmentInterface: React.FC = () => {
     if (userSchool) {
       loadAllData();
     }
-  }, [userSchool, currentAcademicYear]);
+  }, [userSchool, currentAcademicYear?.id]);
 
   const loadAllData = async () => {
-    if (!userSchool || !currentAcademicYear) return;
+    if (!userSchool || !currentAcademicYear?.id) return;
 
     try {
       setLoading(true);
@@ -158,8 +156,6 @@ const EnrollmentInterface: React.FC = () => {
       f.name.toLowerCase().includes('scolarité') && 
       (f.level.toLowerCase() === level.toLowerCase() || f.level === 'Tous')
     );
-    console.log(f.level.toLowerCase());
-    console.log(level.toLowerCase());
     return fee?.amount || 350000;
   };
 
@@ -333,7 +329,7 @@ const EnrollmentInterface: React.FC = () => {
           const enrollmentDataForDB = {
             classId: enrollmentData.classId,
             schoolId: userSchool!.id,
-            academicYearId: currentAcademicYear!.id,
+            academicYearId: currentAcademicYear.id,
             paidAmount: enrollmentData.initialPayment,
             paymentMethod: enrollmentData.paymentType
           };
@@ -345,7 +341,7 @@ const EnrollmentInterface: React.FC = () => {
             await PaymentService.recordPayment({
               enrollmentId: result.enrollment.id,
               schoolId: userSchool!.id,
-              academicYearId: currentAcademicYear!.id,
+              academicYearId: currentAcademicYear.id,
               amount: enrollmentData.initialPayment,
               paymentMethodId: enrollmentData.paymentMethodId,
               paymentType: enrollmentData.paymentType as any,
@@ -363,7 +359,7 @@ const EnrollmentInterface: React.FC = () => {
             studentId: selectedStudent.id,
             classId: enrollmentData.classId,
             schoolId: userSchool!.id,
-            academicYearId: currentAcademicYear!.id,
+            academicYearId: currentAcademicYear.id,
             paidAmount: enrollmentData.initialPayment,
             paymentMethod: enrollmentData.paymentType
           });
@@ -375,7 +371,7 @@ const EnrollmentInterface: React.FC = () => {
               .from('student_class_enrollments')
               .select('id')
               .eq('student_id', selectedStudent.id)
-              .eq('academic_year_id', currentAcademicYear!.id)
+              .eq('academic_year_id', currentAcademicYear.id)
               .eq('is_active', true)
               .single();
               
@@ -383,7 +379,7 @@ const EnrollmentInterface: React.FC = () => {
               await PaymentService.recordPayment({
                 enrollmentId: enrollment.id,
                 schoolId: userSchool!.id,
-                academicYearId: currentAcademicYear!.id,
+               academicYearId: currentAcademicYear.id,
                 amount: enrollmentData.initialPayment,
                 paymentMethodId: enrollmentData.paymentMethodId,
                 paymentType: enrollmentData.paymentType as any,
@@ -480,7 +476,7 @@ const EnrollmentInterface: React.FC = () => {
         
         <div className="flex items-center space-x-2 text-sm text-gray-500">
           <Calendar className="h-4 w-4" />
-          <span>Année Scolaire: {currentAcademicYear}</span>
+          <span>Année Scolaire: {currentAcademicYear?.name}</span>
         </div>
       </div>
 
@@ -990,7 +986,7 @@ const EnrollmentInterface: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Année Active</p>
-              <p className="text-lg font-bold text-gray-800">{currentAcademicYear?.name || currentAcademicYear}</p>
+              <p className="text-lg font-bold text-gray-800">{currentAcademicYear?.name}</p>
             </div>
           </div>
         </div>

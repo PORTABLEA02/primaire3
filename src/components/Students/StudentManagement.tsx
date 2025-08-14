@@ -131,6 +131,7 @@ const StudentManagement: React.FC = () => {
       
       // Si un paiement initial est effectué, l'enregistrer
       if (enrollmentData.initialPayment > 0) {
+        const referencePrefix = enrollmentData.paymentType === 'Inscription' ? 'INS' : 'SCO';
         await PaymentService.recordPayment({
           enrollmentId: enrollment.id,
           schoolId: userSchool.id,
@@ -139,7 +140,7 @@ const StudentManagement: React.FC = () => {
           paymentMethodId: enrollmentData.paymentMethodId || null,
           paymentType: enrollmentData.paymentType,
           paymentDate: new Date().toISOString().split('T')[0],
-          referenceNumber: `INS-${Date.now()}`,
+          referenceNumber: `${referencePrefix}-${Date.now()}`,
           mobileNumber: enrollmentData.mobileNumber,
           bankDetails: enrollmentData.bankDetails,
           notes: enrollmentData.notes,

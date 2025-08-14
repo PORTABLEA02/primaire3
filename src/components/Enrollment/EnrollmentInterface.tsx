@@ -334,7 +334,6 @@ const EnrollmentInterface: React.FC = () => {
             classId: enrollmentData.classId,
             schoolId: userSchool!.id,
             academicYearId: currentAcademicYear!.id,
-            totalFees: selectedClass?.fees || 350000,
             paidAmount: enrollmentData.initialPayment,
             paymentMethod: enrollmentData.paymentType
           };
@@ -365,7 +364,6 @@ const EnrollmentInterface: React.FC = () => {
             classId: enrollmentData.classId,
             schoolId: userSchool!.id,
             academicYearId: currentAcademicYear!.id,
-            totalFees: selectedClass?.fees || 350000,
             paidAmount: enrollmentData.initialPayment,
             paymentMethod: enrollmentData.paymentType
           });

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, DollarSign, User, Calendar, CreditCard, Smartphone, Building, Search, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../Auth/AuthProvider';
 import { StudentService } from '../../services/studentService';
+import { PaymentService } from '../../services/paymentService';
+import { supabase } from '../../lib/supabase';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -44,6 +46,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
   // Charger les élèves au montage du modal
   React.useEffect(() => {
     if (isOpen && userSchool && currentAcademicYear) {
+      
       loadStudents();
     }
   }, [isOpen, userSchool, currentAcademicYear]);

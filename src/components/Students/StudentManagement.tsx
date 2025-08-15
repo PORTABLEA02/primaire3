@@ -179,6 +179,10 @@ const StudentManagement: React.FC = () => {
     setShowDetailModal(true);
   };
 
+  const handleEditStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setShowDetailModal(true);
+  };
   const handleTransferStudent = (student: Student) => {
     setSelectedStudent(student);
     setShowTransferModal(true);
@@ -302,7 +306,7 @@ const StudentManagement: React.FC = () => {
       <StudentTable
         students={filteredStudents}
         onViewStudent={handleViewStudent}
-        onEditStudent={handleViewStudent}
+        onEditStudent={handleEditStudent}
         onTransferStudent={handleTransferStudent}
         onWithdrawStudent={handleWithdrawStudent}
         onPrintInvoice={handlePrintInvoice}

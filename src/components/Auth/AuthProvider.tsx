@@ -73,8 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Le refresh token est invalide → obliger l'utilisateur à se reconnecter
           console.log('Session expirée, merci de vous reconnecter');
           setError('Votre session a expiré. Veuillez vous reconnecter.');
-          SessionUtils.cleanupSession();
-          await handleSignOut();
+          // Ne pas nettoyer immédiatement - laisser SessionExpiredModal gérer l'interaction utilisateur
         }
       }
     );

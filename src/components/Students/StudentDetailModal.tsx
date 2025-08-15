@@ -38,6 +38,7 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const [editData, setEditData] = useState<any>({});
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen && student) {
@@ -80,12 +81,16 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
   const handleSave = async () => {
     try {
+      setSaving(true);
       await StudentService.updateStudent(student.student_id, editData);
       setIsEditing(false);
       onUpdate();
       alert('Informations mises à jour avec succès');
     } catch (error: any) {
+      console.error('Erreur lors de la mise à jour:', error);
       alert(`Erreur: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -252,6 +257,16 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                         </div>
 
                         <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Nationalité</label>
+                          <input
+                            type="text"
+                            value={editData.nationality || ''}
+                            onChange={(e) => setEditData(prev => ({ ...prev, nationality: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Email principal</label>
                           <input
                             type="email"
@@ -322,6 +337,13 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                               onChange={(e) => setEditData(prev => ({ ...prev, fatherPhone: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
+                            <input
+                              type="text"
+                              placeholder="Profession du père"
+                              value={editData.fatherOccupation || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, fatherOccupation: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
                           </div>
                         </div>
 
@@ -342,7 +364,41 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                               onChange={(e) => setEditData(prev => ({ ...prev, motherPhone: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
+                            <input
+                              type="text"
+                              placeholder="Profession de la mère"
+                              value={editData.motherOccupation || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, motherOccupation: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
                           </div>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium text-gray-800 mb-3">Contact d'Urgence</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input
+                              type="text"
+                              placeholder="Nom du contact d'urgence"
+                              value={editData.emergencyContactName || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, emergencyContactName: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <input
+                              type="tel"
+                              placeholder="Téléphone d'urgence"
+                              value={editData.emergencyContactPhone || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, emergencyContactPhone: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Relation (ex: Oncle, Tante, Voisin...)"
+                            value={editData.emergencyContactRelation || ''}
+                            onChange={(e) => setEditData(prev => ({ ...prev, emergencyContactRelation: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mt-3"
+                          />
                         </div>
                       </div>
                     ) : (
@@ -358,6 +414,9 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                                   <span>{student.father_phone}</span>
                                 </div>
                               )}
+                              {student.father_occupation && (
+                                <p><strong>Profession:</strong> {student.father_occupation}</p>
+                              )}
                             </div>
                           </div>
                         )}
@@ -372,6 +431,29 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                                   <Phone className="h-3 w-3 text-pink-600" />
                                   <span>{student.mother_phone}</span>
                                 </div>
+                              )}
+                              {student.mother_occupation && (
+                                <p><strong>Profession:</strong> {student.mother_occupation}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {(student.emergency_contact_name || student.emergency_contact_phone) && (
+                          <div className="p-3 bg-gray-50 rounded-lg">
+                            <h4 className="font-medium text-gray-800 mb-2">Contact d'Urgence</h4>
+                            <div className="space-y-1 text-sm">
+                              {student.emergency_contact_name && (
+                                <p><strong>Nom:</strong> {student.emergency_contact_name}</p>
+                              )}
+                              {student.emergency_contact_phone && (
+                                <div className="flex items-center space-x-2">
+                                  <Phone className="h-3 w-3 text-gray-600" />
+                                  <span>{student.emergency_contact_phone}</span>
+                                </div>
+                              )}
+                              {student.emergency_contact_relation && (
+                                <p><strong>Relation:</strong> {student.emergency_contact_relation}</p>
                               )}
                             </div>
                           </div>
@@ -466,13 +548,24 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 <div className="flex items-center space-x-3 pt-6 border-t border-gray-200">
                   <button
                     onClick={handleSave}
+                    disabled={saving}
                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                   >
-                    <Save className="h-4 w-4" />
-                    <span>Sauvegarder</span>
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Sauvegarde...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span>Sauvegarder</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => setIsEditing(false)}
+                    disabled={saving}
                     className="px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Annuler
@@ -631,13 +724,6 @@ const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
         <div className="p-6 border-t border-gray-200">
           <div className="flex items-center justify-end space-x-3">
-            <button
-              onClick={() => handleTransferStudent(student)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-            >
-              <Users className="h-4 w-4" />
-              <span>Transférer</span>
-            </button>
             <button
               onClick={onClose}
               className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"

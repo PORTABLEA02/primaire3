@@ -286,17 +286,6 @@ const ClassManagement: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 text-blue-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">Chargement des classes...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-96">

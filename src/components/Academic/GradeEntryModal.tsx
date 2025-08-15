@@ -6,6 +6,7 @@ import { StudentService } from '../../services/studentService';
 import { GradeService } from '../../services/gradeService';
 import { SubjectService } from '../../services/subjectService';
 import { supabase } from '../../lib/supabase';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface GradeEntryModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
   selectedPeriod
 }) => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { notify } = useConfirmationContext();
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [classInfo, setClassInfo] = useState<any>(null);
@@ -251,18 +253,32 @@ const GradeEntryModal: React.FC<GradeEntryModalProps> = ({
         }));
 
       if (gradesToSave.length === 0) {
-        throw new Error('Aucune note à sauvegarder');
+        notify({
+          title: 'Aucune note',
+          message: 'Aucune note à sauvegarder. Veuillez saisir au moins une note.',
+          type: 'warning'
+        });
+        return;
       }
 
       // Sauvegarder en lot
       await GradeService.saveBulkGrades(gradesToSave);
       
       onClose();
-      alert(`${gradesToSave.length} note(s) sauvegardée(s) avec succès pour ${selectedClass} - ${selectedSubject}`);
+      notify({
+        title: 'Notes sauvegardées',
+        message: `${gradesToSave.length} note(s) sauvegardée(s) avec succès pour ${selectedClass} - ${selectedSubject}`,
+        type: 'success',
+        autoClose: true
+      });
       
     } catch (error: any) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert(`Erreur lors de la sauvegarde: ${error.message}`);
+      notify({
+        title: 'Erreur de sauvegarde',
+        message: `Erreur lors de la sauvegarde: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setIsSaving(false);
     }

@@ -5,6 +5,7 @@ import { useAuth } from '../Auth/AuthProvider';
 import { ClassService } from '../../services/classService';
 import { GradeService } from '../../services/gradeService';
 import { supabase } from '../../lib/supabase';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface CalculateAveragesModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ const CalculateAveragesModal: React.FC<CalculateAveragesModalProps> = ({
   onClose
 }) => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { notify } = useConfirmationContext();
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
   const [activePeriod, setActivePeriod] = useState<any>(null);
@@ -102,7 +104,11 @@ const CalculateAveragesModal: React.FC<CalculateAveragesModalProps> = ({
 
   const startCalculation = async () => {
     if (!activePeriod) {
-      alert('Période d\'évaluation non trouvée');
+      notify({
+        title: 'Période manquante',
+        message: 'Période d\'évaluation non trouvée. Veuillez vérifier la configuration.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -175,14 +181,23 @@ const CalculateAveragesModal: React.FC<CalculateAveragesModalProps> = ({
 
     } catch (error: any) {
       console.error('Erreur lors du calcul:', error);
-      alert(`Erreur lors du calcul: ${error.message}`);
+      notify({
+        title: 'Erreur de calcul',
+        message: `Erreur lors du calcul: ${error.message}`,
+        type: 'error'
+      });
       setCalculationStep('config');
     }
   };
 
   const exportResults = (format: 'pdf' | 'excel') => {
     console.log(`Export des résultats en ${format.toUpperCase()}`);
-    alert(`Export ${format.toUpperCase()} en cours...`);
+    notify({
+      title: 'Export en cours',
+      message: `Export ${format.toUpperCase()} en cours de génération...`,
+      type: 'info',
+      autoClose: true
+    });
   };
 
   const getAverageColor = (average: number) => {

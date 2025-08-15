@@ -8,6 +8,7 @@ import RecentPaymentsTable from './RecentPaymentsTable';
 import { useAuth } from '../Auth/AuthProvider';
 import { PaymentService } from '../../services/paymentService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface Payment {
   id: string;
@@ -47,6 +48,7 @@ interface FinancialStats {
 
 const FinanceManagement: React.FC = () => {
   const { userSchool, currentAcademicYear, user } = useAuth();
+  const { notify } = useConfirmationContext();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,10 +148,19 @@ const FinanceManagement: React.FC = () => {
       // Recharger les données
       await loadFinancialData();
       
-      alert(`Paiement de ${paymentData.amount.toLocaleString()} FCFA enregistré avec succès !`);
+      notify({
+        title: 'Paiement enregistré',
+        message: `Paiement de ${paymentData.amount.toLocaleString()} FCFA enregistré avec succès pour ${paymentData.studentName}.`,
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de l\'enregistrement du paiement:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de paiement',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -208,7 +219,11 @@ const FinanceManagement: React.FC = () => {
 
     } catch (error: any) {
       console.error('Erreur lors de l\'export:', error);
-      alert(`Erreur lors de l\'export: ${error.message}`);
+      notify({
+        title: 'Erreur d\'export',
+        message: `Erreur lors de l'export: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

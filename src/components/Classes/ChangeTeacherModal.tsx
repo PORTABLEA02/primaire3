@@ -3,6 +3,7 @@ import { X, User, Users, ArrowRight, CheckCircle, AlertCircle, Award } from 'luc
 import { useAuth } from '../Auth/AuthProvider';
 import { TeacherService } from '../../services/teacherService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface ChangeTeacherModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ const ChangeTeacherModal: React.FC<ChangeTeacherModalProps> = ({
   onChangeTeacher
 }) => {
   const { userSchool, currentAcademicYear, user } = useAuth();
+  const { confirmAsync, notify } = useConfirmationContext();
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [confirmationStep, setConfirmationStep] = useState(false);
   const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>([]);
@@ -143,7 +145,13 @@ const ChangeTeacherModal: React.FC<ChangeTeacherModalProps> = ({
 
   const handleConfirmChange = async () => {
     if (selectedTeacher && userSchool) {
-      try {
+      const confirmed = await confirmAsync({
+        title: 'Confirmer le changement d\'enseignant',
+        message: `Êtes-vous sûr de vouloir changer l'enseignant de ${classData.name} ? Cette action prendra effet immédiatement.`,
+        type: 'warning',
+        confirmText: 'Confirmer le changement',
+        cancelText: 'Annuler'
+      }, async () => {
         setLoading(true);
 
         // Logger l'activité
@@ -161,10 +169,23 @@ const ChangeTeacherModal: React.FC<ChangeTeacherModalProps> = ({
         onClose();
         setSelectedTeacher(null);
         setConfirmationStep(false);
-      } catch (error: any) {
+        setLoading(false);
+      });
+      
+      if (confirmed) {
+        notify({
+          title: 'Changement effectué',
+          message: 'L\'enseignant a été changé avec succès.',
+          type: 'success',
+          autoClose: true
+        });
+      } else {
         console.error('Erreur lors du changement d\'enseignant:', error);
-        setError(error.message || 'Erreur lors du changement');
-      } finally {
+        notify({
+          title: 'Erreur',
+          message: 'Erreur lors du changement d\'enseignant.',
+          type: 'error'
+        });
         setLoading(false);
       }
     }

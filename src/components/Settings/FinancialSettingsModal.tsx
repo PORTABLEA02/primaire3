@@ -4,6 +4,7 @@ import { useAuth } from '../Auth/AuthProvider';
 import { supabase } from '../../lib/supabase';
 import { PaymentService } from '../../services/paymentService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface FinancialSettingsModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
   onSave
 }) => {
   const { userSchool, user } = useAuth();
+  const { confirm, notify } = useConfirmationContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feeTypes, setFeeTypes] = useState<FeeType[]>([]);
@@ -264,7 +266,20 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
   };
 
   const handleDeleteFeeType = async (feeId: string) => {
-    if (!userSchool || !confirm('Êtes-vous sûr de vouloir supprimer ce type de frais ?')) return;
+    if (!userSchool) return;
+    
+    const fee = feeTypes.find(f => f.id === feeId);
+    if (!fee) return;
+    
+    const confirmed = await confirm({
+      title: 'Supprimer le type de frais',
+      message: `Êtes-vous sûr de vouloir supprimer "${fee.name}" ? Cette action est irréversible.`,
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setLoading(true);
@@ -278,16 +293,39 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
 
       setFeeTypes(prev => prev.filter(fee => fee.id !== feeId));
 
+      notify({
+        title: 'Type de frais supprimé',
+        message: `"${fee.name}" a été supprimé avec succès.`,
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de suppression',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeletePaymentMethod = async (methodId: string) => {
-    if (!userSchool || !confirm('Êtes-vous sûr de vouloir supprimer cette méthode de paiement ?')) return;
+    if (!userSchool) return;
+    
+    const method = paymentMethods.find(m => m.id === methodId);
+    if (!method) return;
+    
+    const confirmed = await confirm({
+      title: 'Supprimer la méthode de paiement',
+      message: `Êtes-vous sûr de vouloir supprimer "${method.name}" ? Cette action désactivera la méthode.`,
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setLoading(true);
@@ -301,9 +339,19 @@ const FinancialSettingsModal: React.FC<FinancialSettingsModalProps> = ({
 
       setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
 
+      notify({
+        title: 'Méthode supprimée',
+        message: `"${method.name}" a été supprimée avec succès.`,
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de suppression',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

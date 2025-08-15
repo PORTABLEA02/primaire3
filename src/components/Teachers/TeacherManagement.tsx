@@ -26,6 +26,7 @@ import ImportButton from '../Import/ImportButton';
 import { useAuth } from '../Auth/AuthProvider';
 import { TeacherService } from '../../services/teacherService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface Teacher {
   id: string;
@@ -65,6 +66,7 @@ interface TeacherStats {
 
 const TeacherManagement: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { confirm, confirmAsync, notify } = useConfirmationContext();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherStats, setTeacherStats] = useState<TeacherStats | null>(null);
   const [absences, setAbsences] = useState<any[]>([]);
@@ -134,10 +136,19 @@ const TeacherManagement: React.FC = () => {
       });
 
       await loadData();
-      alert('Enseignant ajouté avec succès !');
+      notify({
+        title: 'Enseignant ajouté',
+        message: 'Enseignant ajouté avec succès !',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur d\'ajout',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     }
   };
 
@@ -147,13 +158,30 @@ const TeacherManagement: React.FC = () => {
   };
 
   const handleDeleteTeacher = async (teacher: Teacher) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer ${teacher.first_name} ${teacher.last_name} ?`)) {
+    const confirmed = await confirm({
+      title: 'Supprimer l\'enseignant',
+      message: `Êtes-vous sûr de vouloir supprimer ${teacher.first_name} ${teacher.last_name} ? Cette action désactivera l'enseignant dans le système.`,
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    });
+    
+    if (confirmed) {
       try {
         await TeacherService.deleteTeacher(teacher.id);
         await loadData();
-        alert('Enseignant supprimé avec succès');
+        notify({
+          title: 'Enseignant supprimé',
+          message: `${teacher.first_name} ${teacher.last_name} a été supprimé avec succès.`,
+          type: 'success',
+          autoClose: true
+        });
       } catch (error: any) {
-        alert(`Erreur: ${error.message}`);
+        notify({
+          title: 'Erreur',
+          message: `Erreur: ${error.message}`,
+          type: 'error'
+        });
       }
     }
   };

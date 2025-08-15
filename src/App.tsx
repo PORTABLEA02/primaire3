@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './components/Auth/AuthProvider';
 import { SchoolProvider } from './contexts/SchoolContext';
 import { AcademicYearProvider } from './contexts/AcademicYearContext';
 import { RouterProvider } from './contexts/RouterContext';
+import { ConfirmationProvider } from './contexts/ConfirmationContext';
 import { useSessionManager } from './hooks/useSessionManager';
 import { useSessionSecurity } from './hooks/useSessionSecurity';
 import LoginPage from './components/Auth/LoginPage';
@@ -124,7 +125,9 @@ function App() {
         <SchoolProvider>
           <AcademicYearProvider>
             <RouterProvider>
-              <AppContent />
+              <ConfirmationProvider>
+                <AppContent />
+              </ConfirmationProvider>
             </RouterProvider>
           </AcademicYearProvider>
         </SchoolProvider>

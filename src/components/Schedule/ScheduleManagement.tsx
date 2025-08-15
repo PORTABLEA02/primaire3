@@ -16,9 +16,11 @@ import { useAuth } from '../Auth/AuthProvider';
 import { ScheduleService } from '../../services/scheduleService';
 import { ClassService } from '../../services/classService';
 import { TeacherService } from '../../services/teacherService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 const ScheduleManagement: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { notify } = useConfirmationContext();
   const [selectedClass, setSelectedClass] = useState('CM2A');
   const [selectedWeek, setSelectedWeek] = useState('current');
   const [viewMode, setViewMode] = useState<'week' | 'class' | 'teacher'>('week');
@@ -106,8 +108,12 @@ const ScheduleManagement: React.FC = () => {
     
     setTimeSlots(prev => [...prev, newTimeSlot]);
     
-    // Notification de succès (optionnel)
-    console.log('Nouveau cours ajouté:', newTimeSlot);
+    notify({
+      title: 'Cours ajouté',
+      message: `Nouveau cours ${courseData.subject} ajouté avec succès.`,
+      type: 'success',
+      autoClose: true
+    });
   };
 
   const getScheduleForSlot = (day: string, timeSlot: string) => {

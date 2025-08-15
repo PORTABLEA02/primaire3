@@ -13,6 +13,7 @@ import { StudentService } from '../../services/studentService';
 import { PaymentService } from '../../services/paymentService';
 import { ActivityLogService } from '../../services/activityLogService';
 import { StudentHelpers } from '../../utils/studentHelpers';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface Student {
   id: string;
@@ -40,6 +41,7 @@ interface Student {
 
 const StudentManagement: React.FC = () => {
   const { userSchool, currentAcademicYear, user } = useAuth();
+  const { confirm, confirmAsync, notify } = useConfirmationContext();
   const [students, setStudents] = useState<Student[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -167,10 +169,20 @@ const StudentManagement: React.FC = () => {
       const message = enrollmentData.initialPayment > 0 
         ? `Élève inscrit avec succès ! Paiement initial ${enrollmentData.paymentType} de ${enrollmentData.initialPayment.toLocaleString()} FCFA enregistré.`
         : 'Élève inscrit avec succès !';
-      alert(message);
+      
+      notify({
+        title: 'Inscription réussie',
+        message,
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur d\'inscription',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     }
   };
 
@@ -190,7 +202,17 @@ const StudentManagement: React.FC = () => {
 
   const handleWithdrawStudent = async (student: Student) => {
     const reason = prompt('Raison du retrait:');
-    if (reason && confirm(`Êtes-vous sûr de vouloir retirer ${student.first_name} ${student.last_name} ?`)) {
+    if (!reason) return;
+    
+    const confirmed = await confirm({
+      title: 'Confirmer le retrait',
+      message: `Êtes-vous sûr de vouloir retirer ${student.first_name} ${student.last_name} de l'école ? Cette action désactivera l'inscription de l'élève.`,
+      type: 'danger',
+      confirmText: 'Retirer l\'élève',
+      cancelText: 'Annuler'
+    });
+    
+    if (confirmed) {
       try {
         // Trouver l'inscription active
         const enrollment = students.find(s => s.student_id === student.student_id);
@@ -198,10 +220,19 @@ const StudentManagement: React.FC = () => {
           await StudentService.withdrawStudent(enrollment.id, reason);
           await loadStudents();
           await loadStats();
-          alert('Élève retiré avec succès');
+          notify({
+            title: 'Élève retiré',
+            message: `${student.first_name} ${student.last_name} a été retiré avec succès.`,
+            type: 'success',
+            autoClose: true
+          });
         }
       } catch (error: any) {
-        alert(`Erreur: ${error.message}`);
+        notify({
+          title: 'Erreur',
+          message: `Erreur lors du retrait: ${error.message}`,
+          type: 'error'
+        });
       }
     }
   };

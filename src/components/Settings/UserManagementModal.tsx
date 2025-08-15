@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Users, Plus, Edit, Trash2, Shield, Eye, EyeOff } from 'lucide-react';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface UserManagementModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { confirm, notify } = useConfirmationContext();
   const [users, setUsers] = useState<User[]>([
     {
       id: '1',
@@ -121,9 +123,26 @@ const UserManagementModal: React.FC<UserManagementModalProps> = ({
   };
 
   const handleDeleteUser = (userId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-      setUsers(prev => prev.filter(u => u.id !== userId));
-    }
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    confirm({
+      title: 'Supprimer l\'utilisateur',
+      message: `Êtes-vous sûr de vouloir supprimer l'utilisateur "${user.name}" ? Cette action est irréversible.`,
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    }).then((confirmed) => {
+      if (confirmed) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        notify({
+          title: 'Utilisateur supprimé',
+          message: `L'utilisateur "${user.name}" a été supprimé avec succès.`,
+          type: 'success',
+          autoClose: true
+        });
+      }
+    });
   };
 
   const toggleUserStatus = (userId: string) => {

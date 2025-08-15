@@ -3,6 +3,7 @@ import { X, Upload, FileSpreadsheet, Users, UserCheck, BookOpen, Download, Alert
 import { useAuth } from '../Auth/AuthProvider';
 import { ImportService } from '../../services/importService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface BulkImportModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
   onImportComplete
 }) => {
   const { userSchool, currentAcademicYear, user } = useAuth();
+  const { notify } = useConfirmationContext();
   const [activeTab, setActiveTab] = useState<ImportType>('students');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -87,7 +89,11 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
           file.type !== 'application/vnd.ms-excel' &&
           !file.name.endsWith('.xlsx') && 
           !file.name.endsWith('.xls')) {
-        alert('Veuillez sélectionner un fichier Excel (.xlsx ou .xls)');
+        notify({
+          title: 'Format de fichier invalide',
+          message: 'Veuillez sélectionner un fichier Excel (.xlsx ou .xls)',
+          type: 'warning'
+        });
         return;
       }
       
@@ -112,7 +118,11 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
       
     } catch (error: any) {
       console.error('Erreur lors de l\'analyse du fichier:', error);
-      alert(`Erreur lors de l'analyse du fichier: ${error.message}`);
+      notify({
+        title: 'Erreur d\'analyse',
+        message: `Erreur lors de l'analyse du fichier: ${error.message}`,
+        type: 'error'
+      });
       setStep('upload');
     } finally {
       setImporting(false);
@@ -167,7 +177,11 @@ const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
     } catch (error: any) {
       console.error('Erreur lors de l\'import:', error);
-      alert(`Erreur lors de l'import: ${error.message}`);
+      notify({
+        title: 'Erreur d\'import',
+        message: `Erreur lors de l'import: ${error.message}`,
+        type: 'error'
+      });
       setStep('preview');
     } finally {
       setImporting(false);

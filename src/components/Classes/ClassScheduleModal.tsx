@@ -5,6 +5,7 @@ import { ScheduleService } from '../../services/scheduleService';
 import { SubjectService } from '../../services/subjectService';
 import { ClassroomService } from '../../services/classroomService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface ClassScheduleModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
   classData
 }) => {
   const { userSchool, currentAcademicYear, user } = useAuth();
+  const { confirm, notify } = useConfirmationContext();
   const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
   const [availableClassrooms, setAvailableClassrooms] = useState<any[]>([]);
@@ -164,7 +166,11 @@ const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
       );
 
       if (conflicts.length > 0) {
-        alert('Conflit d\'horaire détecté. Veuillez choisir un autre créneau.');
+        notify({
+          title: 'Conflit d\'horaire',
+          message: 'Conflit d\'horaire détecté. Veuillez choisir un autre créneau.',
+          type: 'warning'
+        });
         return;
       }
 
@@ -204,17 +210,34 @@ const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
       });
       setShowAddCourse(false);
 
-      alert('Cours ajouté avec succès !');
+      notify({
+        title: 'Cours ajouté',
+        message: 'Cours ajouté avec succès !',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout du cours:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur d\'ajout',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleRemoveCourse = async (slotId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce cours ?')) return;
+    const confirmed = await confirm({
+      title: 'Supprimer le cours',
+      message: 'Êtes-vous sûr de vouloir supprimer ce cours de l\'emploi du temps ?',
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    });
+    
+    if (!confirmed) return;
 
     try {
       setLoading(true);
@@ -234,10 +257,19 @@ const ClassScheduleModal: React.FC<ClassScheduleModalProps> = ({
 
       // Recharger les données
       await loadScheduleData();
-      alert('Cours supprimé avec succès');
+      notify({
+        title: 'Cours supprimé',
+        message: 'Cours supprimé avec succès',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de suppression',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

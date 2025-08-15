@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, FileText, Download, Printer, Mail, CheckCircle, Clock, User, Award, TrendingUp } from 'lucide-react';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface BulletinGenerationModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ const BulletinGenerationModal: React.FC<BulletinGenerationModalProps> = ({
   selectedPeriod,
   classAverages
 }) => {
+  const { notify } = useConfirmationContext();
   const [generationStep, setGenerationStep] = useState<'config' | 'generating' | 'preview' | 'complete'>('config');
   const [progress, setProgress] = useState(0);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
@@ -109,7 +111,11 @@ const BulletinGenerationModal: React.FC<BulletinGenerationModalProps> = ({
 
   const startGeneration = async () => {
     if (selectedClasses.length === 0) {
-      alert('Veuillez sélectionner au moins une classe');
+      notify({
+        title: 'Sélection requise',
+        message: 'Veuillez sélectionner au moins une classe pour générer les bulletins.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -170,16 +176,31 @@ const BulletinGenerationModal: React.FC<BulletinGenerationModalProps> = ({
     
     // Simulation de la génération finale
     setTimeout(() => {
-      alert(`${selectedClasses.length} bulletins générés avec succès !`);
+      notify({
+        title: 'Bulletins générés',
+        message: `${selectedClasses.length} bulletins générés avec succès !`,
+        type: 'success',
+        autoClose: true
+      });
     }, 1000);
   };
 
   const sendByEmail = () => {
-    alert('Envoi des bulletins par email en cours...');
+    notify({
+      title: 'Envoi par email',
+      message: 'Envoi des bulletins par email en cours...',
+      type: 'info',
+      autoClose: true
+    });
   };
 
   const printBulletins = () => {
-    alert('Impression des bulletins en cours...');
+    notify({
+      title: 'Impression',
+      message: 'Impression des bulletins en cours...',
+      type: 'info',
+      autoClose: true
+    });
   };
 
   if (!isOpen) return null;

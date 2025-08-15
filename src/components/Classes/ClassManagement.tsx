@@ -9,6 +9,7 @@ import { useAuth } from '../Auth/AuthProvider';
 import { ClassService } from '../../services/classService';
 import { TeacherService } from '../../services/teacherService';
 import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface ClassData {
   id: string;
@@ -75,6 +76,7 @@ const getColorClasses = (color: string) => {
 
 const ClassManagement: React.FC = () => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { notify } = useConfirmationContext();
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignment[]>([]);
   const [availableTeachers, setAvailableTeachers] = useState<any[]>([]);
@@ -179,10 +181,19 @@ const ClassManagement: React.FC = () => {
       });
 
       await loadData();
-      alert('Classe créée avec succès !');
+      notify({
+        title: 'Classe créée',
+        message: 'Classe créée avec succès !',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de la création:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de création',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -212,10 +223,19 @@ const ClassManagement: React.FC = () => {
       });
 
       await loadData();
-      alert(`${assignments.length} affectation(s) enregistrée(s) avec succès !`);
+      notify({
+        title: 'Affectations enregistrées',
+        message: `${assignments.length} affectation(s) enregistrée(s) avec succès !`,
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors des affectations:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur d\'affectation',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -246,10 +266,19 @@ const ClassManagement: React.FC = () => {
       });
 
       await loadData();
-      alert('Classe mise à jour avec succès !');
+      notify({
+        title: 'Classe mise à jour',
+        message: 'Classe mise à jour avec succès !',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de mise à jour',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -277,10 +306,19 @@ const ClassManagement: React.FC = () => {
       });
 
       await loadData();
-      alert(`Enseignant changé avec succès !`);
+      notify({
+        title: 'Enseignant changé',
+        message: 'Enseignant changé avec succès !',
+        type: 'success',
+        autoClose: true
+      });
     } catch (error: any) {
       console.error('Erreur lors du changement:', error);
-      alert(`Erreur: ${error.message}`);
+      notify({
+        title: 'Erreur de changement',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }

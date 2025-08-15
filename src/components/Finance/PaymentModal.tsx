@@ -4,6 +4,7 @@ import { useAuth } from '../Auth/AuthProvider';
 import { StudentService } from '../../services/studentService';
 import { PaymentService } from '../../services/paymentService';
 import { supabase } from '../../lib/supabase';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface PaymentData {
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayment }) => {
   const { userSchool, currentAcademicYear } = useAuth();
+  const { notify } = useConfirmationContext();
   const [step, setStep] = useState<'student' | 'payment' | 'confirmation'>('student');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -147,7 +149,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onAddPayme
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    if (Object.keys(newErrors).length > 0) {
+      notify({
+        title: 'Données incomplètes',
+        message: 'Veuillez corriger les erreurs dans le formulaire.',
+        type: 'warning'
+      });
+      return false;
+    }
+    
+    return true;
   };
 
   const handleStudentSelect = (student: any) => {

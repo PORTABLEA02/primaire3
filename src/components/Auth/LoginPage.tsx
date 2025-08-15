@@ -54,12 +54,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleForgotPassword = () => {
     if (!formData.email) {
-      setLocalError('Veuillez saisir votre adresse email');
+      setLocalError('Veuillez saisir votre adresse email pour la récupération');
       return;
     }
     
     // TODO: Implémenter la récupération de mot de passe avec Supabase
-    alert('Fonctionnalité de récupération de mot de passe à implémenter');
+    setLocalError('Fonctionnalité de récupération de mot de passe en cours de développement');
   };
 
   return (

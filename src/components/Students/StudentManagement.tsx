@@ -3,6 +3,7 @@ import { Users, Plus, RefreshCw, AlertCircle, Upload } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
 import StudentDetailModal from './StudentDetailModal';
 import TransferStudentModal from './TransferStudentModal';
+import StudentInvoiceModal from './StudentInvoiceModal';
 import StudentStatsCard from './StudentStatsCard';
 import StudentFilters from './StudentFilters';
 import StudentTable from './StudentTable';
@@ -49,6 +50,7 @@ const StudentManagement: React.FC = () => {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [stats, setStats] = useState<any>(null);
 
   // Charger les données
@@ -200,6 +202,10 @@ const StudentManagement: React.FC = () => {
     }
   };
 
+  const handlePrintInvoice = (student: Student) => {
+    setSelectedStudent(student);
+    setShowInvoiceModal(true);
+  };
   const exportStudents = () => {
     const exportData = filteredStudents.map(student => 
       StudentHelpers.formatStudentForExport(student)
@@ -299,6 +305,7 @@ const StudentManagement: React.FC = () => {
         onEditStudent={handleViewStudent}
         onTransferStudent={handleTransferStudent}
         onWithdrawStudent={handleWithdrawStudent}
+        onPrintInvoice={handlePrintInvoice}
       />
 
       {/* Modals */}
@@ -328,6 +335,15 @@ const StudentManagement: React.FC = () => {
             }}
             student={selectedStudent}
             onTransfer={loadStudents}
+          />
+
+          <StudentInvoiceModal
+            isOpen={showInvoiceModal}
+            onClose={() => {
+              setShowInvoiceModal(false);
+              setSelectedStudent(null);
+            }}
+            student={selectedStudent}
           />
         </>
       )}

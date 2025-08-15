@@ -9,6 +9,7 @@ export type RouteModule =
   | 'academic' 
   | 'teachers' 
   | 'schedule' 
+  | 'import'
   | 'settings';
 
 interface RouterContextType {
@@ -48,6 +49,7 @@ export const RouterProvider: React.FC<RouterProviderProps> = ({ children }) => {
     academic: 'academic',
     teachers: 'teachers',
     schedule: 'schedule',
+    import: 'students', // Même permission que les élèves
     settings: 'settings'
   };
 

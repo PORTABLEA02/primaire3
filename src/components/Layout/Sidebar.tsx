@@ -31,6 +31,7 @@ const menuItems = [
   { id: 'academic', label: 'Académique', icon: BookOpen },
   { id: 'teachers', label: 'Enseignants', icon: UserCheck },
   { id: 'schedule', label: 'Emploi du Temps', icon: Calendar },
+  { id: 'import', label: 'Import Excel', icon: UserPlus },
   { id: 'settings', label: 'Paramètres', icon: Settings },
 ] as const;
 

@@ -13,6 +13,7 @@ export class RouteUtils {
       academic: 'Gestion Académique',
       teachers: 'Gestion des Enseignants',
       schedule: 'Emploi du Temps',
+      import: 'Import en Masse',
       settings: 'Paramètres'
     };
     return titles[route] || 'Page Inconnue';
@@ -28,6 +29,7 @@ export class RouteUtils {
       academic: 'Notes, bulletins et suivi pédagogique',
       teachers: 'Gestion du personnel enseignant',
       schedule: 'Planification des emplois du temps',
+      import: 'Importation en masse depuis des fichiers Excel',
       settings: 'Configuration du système et paramètres'
     };
     return descriptions[route] || 'Description non disponible';
@@ -43,6 +45,7 @@ export class RouteUtils {
       academic: 'BookOpen',
       teachers: 'UserCheck',
       schedule: 'Calendar',
+      import: 'UserPlus',
       settings: 'Settings'
     };
     return icons[route] || 'Circle';
@@ -60,9 +63,9 @@ export class RouteUtils {
   // Obtenir les routes recommandées selon le rôle
   static getRecommendedRoutes(role: string): RouteModule[] {
     const recommendations: Record<string, RouteModule[]> = {
-      'Admin': ['dashboard', 'settings', 'teachers', 'classes', 'students', 'finance'],
-      'Directeur': ['dashboard', 'students', 'teachers', 'classes', 'academic', 'finance'],
-      'Secrétaire': ['dashboard', 'students', 'classes'],
+      'Admin': ['dashboard', 'settings', 'teachers', 'classes', 'students', 'finance', 'import'],
+      'Directeur': ['dashboard', 'students', 'teachers', 'classes', 'academic', 'finance', 'import'],
+      'Secrétaire': ['dashboard', 'students', 'classes', 'import'],
       'Enseignant': ['dashboard', 'academic', 'students'],
       'Comptable': ['dashboard', 'finance', 'students']
     };
@@ -107,8 +110,8 @@ export class RouteUtils {
   // Vérifier si une chaîne est une route valide
   private static isValidRoute(route: string): boolean {
     const validRoutes: RouteModule[] = [
-      'dashboard', 'enrollment', 'students', 'classes', 
-      'finance', 'academic', 'teachers', 'schedule', 'settings'
+      'dashboard', 'students', 'classes', 
+      'finance', 'academic', 'teachers', 'schedule', 'import', 'settings'
     ];
     return validRoutes.includes(route as RouteModule);
   }
@@ -140,6 +143,10 @@ export class RouteUtils {
       schedule: [
         { label: 'Tableau de Bord', route: 'dashboard' },
         { label: 'Emploi du Temps' }
+      ],
+      import: [
+        { label: 'Tableau de Bord', route: 'dashboard' },
+        { label: 'Import en Masse' }
       ],
       settings: [
         { label: 'Tableau de Bord', route: 'dashboard' },

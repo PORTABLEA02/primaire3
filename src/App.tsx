@@ -16,7 +16,7 @@ import ErrorBoundary from './components/Common/ErrorBoundary';
 import { useRouter } from './contexts/RouterContext';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, login, error, refreshSession, logout } = useAuth();
+  const { isAuthenticated, login, error, refreshSession, logout, loading } = useAuth();
   const { currentRoute, navigate } = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -62,6 +62,17 @@ const AppContent: React.FC = () => {
     return await login(credentials.email, credentials.password, credentials.rememberMe);
   };
 
+  // Afficher un écran de chargement pendant l'initialisation
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement de l'application...</p>
+        </div>
+      </div>
+    );
+  }
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
   }

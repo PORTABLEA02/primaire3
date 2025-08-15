@@ -40,9 +40,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userSchool, setUserSchool] = useState<School | null>(null);
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionPersistence, setSessionPersistence] = useState<'local' | 'session'>('local');
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     // Initialiser le gestionnaire de session
@@ -56,7 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.id);
         
-        if (event === 'SIGNED_IN' && session?.user) {
+        if (event === 'SIGNED_IN' && session?.user && !initializing) {
           // Enregistrer la session
           SessionManager.setSession(session, sessionPersistence);
           
@@ -65,6 +66,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Nettoyer la session locale
           SessionManager.clearSession();
           handleSignOut();
+        } else if (event === 'INITIAL_SESSION' && session?.user) {
+          // Session initiale au chargement de la page
+          console.log('Session initiale détectée');
+          await loadUserProfile(session.user);
+          setInitializing(false);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           // Mettre à jour la session stockée
           SessionManager.updateSession(session);
@@ -84,33 +90,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Vérifier la persistance de session au démarrage
-  useEffect(() => {
-    const savedSession = SessionManager.getStoredSession();
-    if (savedSession && !isAuthenticated) {
-      // Tenter de restaurer la session
-      restoreSession(savedSession);
-    }
-  }, []);
-
-  const restoreSession = async (sessionData: any) => {
-    try {
-      // Vérifier si la session est encore valide
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error || !session) {
-        // Session invalide, nettoyer
-        SessionManager.clearSession();
-        return;
-      }
-
-      // Session valide, charger le profil
-      await loadUserProfile(session.user);
-    } catch (error) {
-      console.error('Erreur lors de la restauration de session:', error);
-      SessionManager.clearSession();
-    }
-  };
   // Fonction pour rafraîchir manuellement la session
   const refreshSession = async (): Promise<boolean> => {
     try {
@@ -150,31 +129,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setCurrentAcademicYear(null);
     setIsAuthenticated(false);
     setError(null);
+    setLoading(false);
   };
 
   const checkSession = async () => {
     try {
+      setLoading(true);
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) throw error;
       
       if (session?.user) {
+        console.log('Session existante trouvée, chargement du profil...');
         await loadUserProfile(session.user);
       } else {
-        // Vérifier s'il y a une session stockée localement
-        const storedSession = SessionManager.getStoredSession();
-        if (storedSession) {
-          await restoreSession(storedSession);
-        }
+        console.log('Aucune session active');
+        setLoading(false);
       }
+      setInitializing(false);
     } catch (error) {
       console.error('Erreur de vérification de session:', error);
       setError('Erreur de vérification de session');
+      setLoading(false);
+      setInitializing(false);
     }
   };
 
   const loadUserProfile = async (supabaseUser: SupabaseUser) => {
     try {
+      setLoading(true);
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select(`
@@ -187,6 +170,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         console.error('Erreur lors du chargement du profil:', error);
         setError('Profil utilisateur non trouvé');
+        setLoading(false);
         return;
       }
 
@@ -288,26 +272,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
 
       // Mettre à jour la dernière connexion et logger l'activité
-      await supabase
-        .from('user_profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', supabaseUser.id);
+      if (!initializing) {
+        // Ne mettre à jour last_login que lors d'une vraie connexion, pas au rechargement
+        await supabase
+          .from('user_profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', supabaseUser.id);
+      }
 
       // Logger la connexion
-      if (profile.school) {
+      if (profile.school && !initializing) {
         await ActivityLogService.logActivity({
           schoolId: profile.school.id,
           userId: supabaseUser.id,
-          action: 'LOGIN',
+          action: initializing ? 'SESSION_RESTORED' : 'LOGIN',
           entityType: 'auth',
           level: 'success',
-          details: 'Connexion réussie'
+          details: initializing ? 'Session restaurée au rechargement' : 'Connexion réussie'
         });
       }
 
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
       setError('Erreur lors du chargement du profil utilisateur');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -357,6 +346,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(error.message || 'Erreur de connexion');
       return false;
     } finally {
+      setLoading(false);
     }
   };
 
@@ -395,6 +385,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Erreur lors de la déconnexion:', error);
       setError(error.message || 'Erreur de déconnexion');
     } finally {
+      setLoading(false);
     }
   };
 

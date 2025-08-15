@@ -14,18 +14,22 @@ export const useSessionManager = () => {
       const isValid = await SessionManager.isSessionValid();
       
       if (!isValid) {
-        console.log('Aucune session active trouvée');
+        console.log('Session invalide détectée');
         
         // Logger la perte de session
         if (userSchool && user) {
-          await ActivityLogService.logActivity({
-            schoolId: userSchool.id,
-            userId: user.id,
-            action: 'SESSION_LOST',
-            entityType: 'auth',
-            level: 'warning',
-            details: 'Session perdue, déconnexion automatique'
-          });
+          try {
+            await ActivityLogService.logActivity({
+              schoolId: userSchool.id,
+              userId: user.id,
+              action: 'SESSION_LOST',
+              entityType: 'auth',
+              level: 'warning',
+              details: 'Session perdue, déconnexion automatique'
+            });
+          } catch (logError) {
+            console.error('Erreur lors du logging:', logError);
+          }
         }
         
         await logout();
@@ -34,7 +38,7 @@ export const useSessionManager = () => {
 
       // Vérifier si le token expire bientôt
       const timeUntilExpiry = SessionManager.getTimeUntilExpiry();
-      if (timeUntilExpiry !== null && timeUntilExpiry < 300) {
+      if (timeUntilExpiry !== null && timeUntilExpiry < 300 && timeUntilExpiry > 0) {
         console.log('Token expire bientôt, rafraîchissement...');
         
         const refreshSuccess = await refreshSession();
@@ -55,12 +59,15 @@ export const useSessionManager = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Vérification initiale après un délai pour éviter les conflits au démarrage
+    const initialTimeout = setTimeout(checkSessionValidity, 5000);
+    
+    // Puis vérifications périodiques
     const interval = setInterval(checkSessionValidity, 2 * 60 * 1000);
     
-    // Vérification initiale
-    checkSessionValidity();
 
     return () => clearInterval(interval);
+      clearTimeout(initialTimeout);
   }, [isAuthenticated, checkSessionValidity]);
 
   // Gérer la visibilité de la page (rafraîchir quand l'utilisateur revient)

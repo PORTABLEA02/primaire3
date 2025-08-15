@@ -103,13 +103,13 @@ export class SessionManager {
       }
 
       if (!session) {
-        this.clearSession();
+        console.log('Aucune session Supabase active');
         return false;
       }
 
       // Vérifier l'expiration
       if (session.expires_at && session.expires_at * 1000 < Date.now()) {
-        this.clearSession();
+        console.log('Session expirée');
         return false;
       }
 

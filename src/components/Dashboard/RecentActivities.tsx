@@ -25,20 +25,11 @@ const RecentActivities: React.FC = () => {
         limit: 5
       });
 
-      // Mapper les logs vers le format d'activités
-      const mappedActivities = activityLogs.map(log => ({
-        type: log.entity_type,
-        title: getActivityTitle(log.action, log.entity_type),
-        description: log.details || `${log.action} ${log.entity_type}`,
-        time: formatRelativeTime(log.created_at),
-        icon: getActivityIcon(log.entity_type),
-        color: getActivityColor(log.level)
-      }));
-
-      setActivities(mappedActivities);
+      setActivities(activityLogs);
 
     } catch (error) {
       console.error('Erreur lors du chargement des activités:', error);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -51,8 +42,9 @@ const RecentActivities: React.FC = () => {
       'CREATE_GRADE': 'Notes saisies',
       'CREATE_CLASS': 'Nouvelle classe',
       'ASSIGN_TEACHER': 'Affectation enseignant',
-      'LOGIN': 'Connexion utilisateur',
-      'LOGOUT': 'Déconnexion utilisateur'
+      'LOGIN': 'Connexion',
+      'LOGOUT': 'Déconnexion',
+      'BULK_IMPORT': 'Import en masse'
     };
     return titles[action] || `${action} ${entityType}`;
   };
@@ -122,21 +114,25 @@ const RecentActivities: React.FC = () => {
       {activities.length > 0 ? (
         <div className="space-y-4">
         {activities.map((activity, index) => {
-          const Icon = activity.icon;
+          const Icon = getActivityIcon(activity.entity_type);
+          const title = getActivityTitle(activity.action, activity.entity_type);
+          const color = getActivityColor(activity.level);
           
           return (
             <div key={index} className="flex items-start space-x-3 sm:space-x-4 p-2 sm:p-3 hover:bg-gray-50 rounded-lg transition-colors">
-              <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${getColorClasses(activity.color)}`}>
+              <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${getColorClasses(color)}`}>
                 <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
               </div>
               
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 text-xs sm:text-sm">{activity.title}</p>
-                <p className="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2">{activity.description}</p>
+                <p className="font-medium text-gray-800 text-xs sm:text-sm">{title}</p>
+                <p className="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2">
+                  {activity.details || `${activity.action} ${activity.entity_type}`}
+                </p>
                 
                 <div className="flex items-center mt-1 sm:mt-2 text-xs text-gray-500">
                   <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
-                  {activity.time}
+                  {formatRelativeTime(activity.created_at)}
                 </div>
               </div>
             </div>

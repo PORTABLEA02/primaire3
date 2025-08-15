@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../components/Auth/AuthProvider';
+import { SessionManager } from '../utils/sessionManager';
 
 interface AcademicYearContextType {
   currentAcademicYear: string;
@@ -32,44 +33,38 @@ export const AcademicYearProvider: React.FC<AcademicYearProviderProps> = ({ chil
     // Si l'utilisateur est authentifié et a une année scolaire active, l'utiliser
     if (isAuthenticated && authAcademicYear) {
       setCurrentAcademicYearState(authAcademicYear.name);
-      // Ajouter l'année à la liste si elle n'y est pas
-      setAvailableYears(prev => {
-        if (!prev.includes(authAcademicYear.name)) {
-          return [authAcademicYear.name, ...prev].sort().reverse();
-        }
-        return prev;
-      });
       return;
     }
 
-    // Sinon, charger depuis localStorage (fallback)
-    // Charger l'année scolaire courante depuis le localStorage
-    const savedYear = localStorage.getItem('ecoletech_current_academic_year');
-    if (savedYear) {
-      setCurrentAcademicYearState(savedYear);
-    }
-
-    // Charger les années disponibles
-    const savedYears = localStorage.getItem('ecoletech_available_years');
-    if (savedYears) {
-      try {
-        setAvailableYears(JSON.parse(savedYears));
-      } catch (error) {
-        console.error('Erreur lors du chargement des années:', error);
-      }
+    // Si pas d'authentification, utiliser l'année par défaut
+    if (!isAuthenticated) {
+      setCurrentAcademicYearState('2024-2025');
+      setAvailableYears(['2024-2025']);
     }
   }, [isAuthenticated, authAcademicYear]);
 
   const setCurrentAcademicYear = (year: string) => {
     setCurrentAcademicYearState(year);
-    localStorage.setItem('ecoletech_current_academic_year', year);
+    
+    // Sauvegarder dans les préférences utilisateur
+    const preferences = SessionManager.getPreferences();
+    SessionManager.setPreferences({
+      ...preferences,
+      currentAcademicYear: year
+    });
   };
 
   const addAcademicYear = (year: string) => {
     if (!availableYears.includes(year)) {
       const newYears = [...availableYears, year].sort().reverse();
       setAvailableYears(newYears);
-      localStorage.setItem('ecoletech_available_years', JSON.stringify(newYears));
+      
+      // Sauvegarder dans les préférences
+      const preferences = SessionManager.getPreferences();
+      SessionManager.setPreferences({
+        ...preferences,
+        availableYears: newYears
+      });
     }
   };
 

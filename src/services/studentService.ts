@@ -229,13 +229,15 @@ export class StudentService {
       // Calculer la somme de tous les frais obligatoires
       const totalFees = (feeTypes || []).reduce((sum, feeType) => sum + feeType.amount, 0);
       
-      // Si aucun frais configuré, utiliser un montant par défaut basé sur le niveau
-     
+      // Si aucun frais configuré, retourner 0 (l'école doit configurer ses frais)
+      if (totalFees === 0) {
+        console.warn(`Aucun frais configuré pour le niveau ${level} dans l'école ${schoolId}`);
+      }
+      
       return totalFees;
     } catch (error) {
       console.error('Erreur lors du calcul des frais totaux:', error);
-      
-      
+      return 0;
     }
   }
   // Créer un élève avec inscription en une transaction

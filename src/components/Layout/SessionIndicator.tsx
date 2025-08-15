@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Wifi, WifiOff, AlertCircle, CheckCircle } from 'lucide-react';
-import { SessionUtils } from '../../utils/sessionUtils';
+import { SessionManager } from '../../utils/sessionManager';
 import { useSessionSecurity } from '../../hooks/useSessionSecurity';
 
 const SessionIndicator: React.FC = () => {
@@ -11,7 +11,7 @@ const SessionIndicator: React.FC = () => {
   useEffect(() => {
     // Mettre à jour les informations de session toutes les 30 secondes
     const updateSessionInfo = async () => {
-      const info = await SessionUtils.getSessionInfo();
+      const info = SessionManager.getSessionInfo();
       setSessionInfo(info);
     };
 
@@ -50,8 +50,7 @@ const SessionIndicator: React.FC = () => {
     if (!isOnline) return 'Hors ligne';
     if (!isSessionValid) return 'Session inactive';
     if (!sessionInfo) return 'Vérification...';
-    if (sessionInfo.status === 'error') return 'Erreur session';
-    if (sessionInfo.status === 'no_session') return 'Pas de session';
+    if (!sessionInfo.hasSession) return 'Pas de session';
     if (sessionInfo.needsRefresh) return 'Session expire bientôt';
     return 'Session active';
   };
@@ -76,7 +75,10 @@ const SessionIndicator: React.FC = () => {
   const StatusIcon = getStatusIcon();
 
   return (
-    <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" title={`Dernière activité: ${getTimeSinceActivity()}`}>
+    <div 
+      className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors" 
+      title={`Dernière activité: ${getTimeSinceActivity()}`}
+    >
       <StatusIcon className={`h-4 w-4 ${getStatusColor()}`} />
       <div className="text-xs">
         <div className={`font-medium ${getStatusColor()}`}>

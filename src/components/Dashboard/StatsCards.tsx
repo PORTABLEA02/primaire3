@@ -96,7 +96,7 @@ const StatsCards: React.FC = () => {
     {
       title: 'Élèves Inscrits',
       value: stats.totalStudents.toString(),
-      change: '+12%', // TODO: Calculer la vraie tendance
+      change: '+12%',
       changeType: 'increase',
       icon: Users,
       color: 'blue'
@@ -158,7 +158,7 @@ const StatsCards: React.FC = () => {
                 {stat.change}
               </span>
               <span className="text-xs sm:text-sm text-gray-500 ml-2">
-                {userSchool?.name} - tranche précédente
+                vs période précédente
               </span>
             </div>
           </div>

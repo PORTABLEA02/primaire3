@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useAuth } from '../components/Auth/AuthProvider';
-import { supabase } from '../lib/supabase';
+import { SessionManager } from '../utils/sessionManager';
 import { ActivityLogService } from '../services/activityLogService';
 
 export const useSessionManager = () => {
@@ -11,26 +11,9 @@ export const useSessionManager = () => {
     if (!isAuthenticated) return;
 
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const isValid = await SessionManager.isSessionValid();
       
-      if (error) {
-        console.error('Erreur lors de la vérification de session:', error);
-        
-        // Logger l'erreur de session
-        if (userSchool && user) {
-          await ActivityLogService.logActivity({
-            schoolId: userSchool.id,
-            userId: user.id,
-            action: 'SESSION_CHECK_ERROR',
-            entityType: 'auth',
-            level: 'error',
-            details: `Erreur de vérification de session: ${error.message}`
-          });
-        }
-        return;
-      }
-
-      if (!session) {
+      if (!isValid) {
         console.log('Aucune session active trouvée');
         
         // Logger la perte de session
@@ -49,79 +32,22 @@ export const useSessionManager = () => {
         return;
       }
 
-      // Vérifier si le token expire bientôt (dans les 5 prochaines minutes)
-      const expiresAt = session.expires_at;
-      if (expiresAt) {
-        const now = Math.floor(Date.now() / 1000);
-        const timeUntilExpiry = expiresAt - now;
+      // Vérifier si le token expire bientôt
+      const timeUntilExpiry = SessionManager.getTimeUntilExpiry();
+      if (timeUntilExpiry !== null && timeUntilExpiry < 300) {
+        console.log('Token expire bientôt, rafraîchissement...');
         
-        // Si le token expire dans moins de 5 minutes, le rafraîchir
-        if (timeUntilExpiry < 300) {
-          console.log('Token expire bientôt, rafraîchissement...');
-          
-          // Logger la tentative de rafraîchissement
-          if (userSchool && user) {
-            await ActivityLogService.logActivity({
-              schoolId: userSchool.id,
-              userId: user.id,
-              action: 'SESSION_REFRESH_ATTEMPT',
-              entityType: 'auth',
-              level: 'info',
-              details: `Token expire dans ${timeUntilExpiry} secondes, rafraîchissement automatique`
-            });
-          }
-          
-          const refreshSuccess = await refreshSession();
-          
-          if (!refreshSuccess) {
-            console.log('Échec du rafraîchissement, déconnexion...');
-            
-            // Logger l'échec du rafraîchissement
-            if (userSchool && user) {
-              await ActivityLogService.logActivity({
-                schoolId: userSchool.id,
-                userId: user.id,
-                action: 'SESSION_REFRESH_FAILED',
-                entityType: 'auth',
-                level: 'error',
-                details: 'Échec du rafraîchissement de session, déconnexion forcée'
-              });
-            }
-            
-            await logout();
-          } else {
-            // Logger le succès du rafraîchissement
-            if (userSchool && user) {
-              await ActivityLogService.logActivity({
-                schoolId: userSchool.id,
-                userId: user.id,
-                action: 'SESSION_REFRESHED',
-                entityType: 'auth',
-                level: 'success',
-                details: 'Session rafraîchie avec succès'
-              });
-            }
-          }
+        const refreshSuccess = await refreshSession();
+        
+        if (!refreshSuccess) {
+          console.log('Échec du rafraîchissement, déconnexion...');
+          await logout();
+        } else {
+          console.log('Session rafraîchie avec succès');
         }
       }
     } catch (error) {
       console.error('Erreur lors de la vérification de session:', error);
-      
-      // Logger l'erreur générale
-      if (userSchool && user) {
-        try {
-          await ActivityLogService.logActivity({
-            schoolId: userSchool.id,
-            userId: user.id,
-            action: 'SESSION_CHECK_EXCEPTION',
-            entityType: 'auth',
-            level: 'error',
-            details: `Exception lors de la vérification: ${error}`
-          });
-        } catch (logError) {
-          console.error('Erreur lors du logging:', logError);
-        }
-      }
     }
   }, [isAuthenticated, refreshSession, logout, user, userSchool]);
 
@@ -142,6 +68,7 @@ export const useSessionManager = () => {
     const handleVisibilityChange = () => {
       if (!document.hidden && isAuthenticated) {
         console.log('Page redevient visible, vérification de session...');
+        SessionManager.updateActivity();
         checkSessionValidity();
       }
     };
@@ -155,6 +82,7 @@ export const useSessionManager = () => {
     const handleOnline = () => {
       if (isAuthenticated) {
         console.log('Connexion réseau rétablie, vérification de session...');
+        SessionManager.updateActivity();
         checkSessionValidity();
       }
     };
@@ -167,7 +95,7 @@ export const useSessionManager = () => {
   useEffect(() => {
     const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
       if (isAuthenticated && userSchool && user) {
-        // Logger la fermeture de session
+        // Logger la fermeture de session (best effort)
         try {
           await ActivityLogService.logActivity({
             schoolId: userSchool.id,
@@ -178,7 +106,7 @@ export const useSessionManager = () => {
             details: 'Fermeture de l\'application'
           });
         } catch (error) {
-          console.error('Erreur lors du logging de fermeture:', error);
+          // Ignorer les erreurs de logging à la fermeture
         }
       }
     };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
-import { Settings as SettingsIcon, Users, Calendar, DollarSign, BookOpen, Shield, Database } from 'lucide-react';
+import { Settings as SettingsIcon, Users, Calendar, DollarSign, BookOpen, Shield, Database, Server } from 'lucide-react';
 import SchoolInfoModal from './SchoolInfoModal';
 import AcademicYearModal from './AcademicYearModal';
 import UserManagementModal from './UserManagementModal';
@@ -13,11 +13,11 @@ import BackupModal from './BackupModal';
 import BulletinTemplatesModal from './BulletinTemplatesModal';
 import SchoolManagementModal from './SchoolManagementModal';
 import ImportHistoryModal from '../Import/ImportHistoryModal';
-import { useAcademicYear } from '../../contexts/AcademicYearContext';
+import { useAuth } from '../Auth/AuthProvider';
 
 const Settings: React.FC = () => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
-  const { currentAcademicYear } = useAcademicYear();
+  const { currentAcademicYear, userSchool } = useAuth();
 
   const settingsSections = [
     {
@@ -27,9 +27,8 @@ const Settings: React.FC = () => {
       settings: [
         { name: 'Gestion des écoles', action: 'school-management' },
         { name: 'Informations de l\'école', action: 'school-info' },
-        { name: 'Année scolaire active', action: 'academic-year' }, 
+        { name: 'Année scolaire active', action: 'academic-year' },
         { name: 'Périodes et trimestres', action: 'academic-year' },
-        { name: 'Seuil de promotion', action: 'academic-config' },
         { name: 'Historique des imports', action: 'import-history' }
       ]
     },
@@ -41,7 +40,7 @@ const Settings: React.FC = () => {
         { name: 'Comptes utilisateurs', action: 'user-management' },
         { name: 'Rôles et permissions', action: 'user-management' },
         { name: 'Sécurité des accès', action: 'security' },
-        { name: 'Historique des connexions', action: 'logs' }
+        { name: 'Journal d\'activité', action: 'logs' }
       ]
     },
     {
@@ -62,8 +61,18 @@ const Settings: React.FC = () => {
       settings: [
         { name: 'Types de frais', action: 'financial-settings' },
         { name: 'Méthodes de paiement', action: 'financial-settings' },
-        { name: 'Mobile Money', action: 'financial-settings' },
         { name: 'Rapports financiers', action: 'financial-reports' }
+      ]
+    },
+    {
+      title: 'Système et Sécurité',
+      icon: Server,
+      color: 'red',
+      settings: [
+        { name: 'Sauvegardes', action: 'backup' },
+        { name: 'Sécurité', action: 'security' },
+        { name: 'Logs système', action: 'logs' },
+        { name: 'Configuration serveur', action: 'server-config' }
       ]
     }
   ];
@@ -124,7 +133,9 @@ const Settings: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-gray-800">Année Scolaire Active</h2>
-              <p className="text-sm sm:text-base text-gray-600">{currentAcademicYear} • Données de l'année en cours uniquement</p>
+              <p className="text-sm sm:text-base text-gray-600">
+                {currentAcademicYear?.name || currentAcademicYear} • {userSchool?.name}
+              </p>
             </div>
           </div>
           <button 
@@ -178,18 +189,18 @@ const Settings: React.FC = () => {
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <div className="text-center p-4 border border-gray-100 rounded-lg">
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">1,247</p>
-            <p className="text-xs sm:text-sm text-gray-600">Élèves inscrits</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-800">v1.0.0</p>
+            <p className="text-xs sm:text-sm text-gray-600">Version système</p>
           </div>
           
           <div className="text-center p-4 border border-gray-100 rounded-lg">
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">24</p>
-            <p className="text-xs sm:text-sm text-gray-600">Enseignants actifs</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600">Actif</p>
+            <p className="text-xs sm:text-sm text-gray-600">État du système</p>
           </div>
           
           <div className="text-center p-4 border border-gray-100 rounded-lg">
-            <p className="text-xl sm:text-2xl font-bold text-gray-800">42</p>
-            <p className="text-xs sm:text-sm text-gray-600">Classes configurées</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">Supabase</p>
+            <p className="text-xs sm:text-sm text-gray-600">Base de données</p>
           </div>
         </div>
       </div>
@@ -206,7 +217,7 @@ const Settings: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 border border-gray-100 rounded-lg">
             <h4 className="text-sm sm:text-base font-medium text-gray-800 mb-2">Dernière Sauvegarde</h4>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3">15 Octobre 2024 à 23:30</p>
+            <p className="text-xs sm:text-sm text-gray-600 mb-3">Configurée automatiquement</p>
             <button 
               onClick={() => setActiveModal('backup')}
               className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
@@ -217,7 +228,7 @@ const Settings: React.FC = () => {
           
           <div className="p-4 border border-gray-100 rounded-lg">
             <h4 className="text-sm sm:text-base font-medium text-gray-800 mb-2">Journal d'Activité</h4>
-            <p className="text-xs sm:text-sm text-gray-600 mb-3">Dernière connexion: Aujourd'hui 14:25</p>
+            <p className="text-xs sm:text-sm text-gray-600 mb-3">Suivi des actions utilisateurs</p>
             <button 
               onClick={() => setActiveModal('logs')}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"

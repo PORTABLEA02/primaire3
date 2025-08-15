@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '../components/Auth/AuthProvider';
+import { SessionManager } from '../utils/sessionManager';
 
 export type RouteModule = 
   | 'dashboard' 
@@ -56,7 +57,7 @@ export const RouterProvider: React.FC<RouterProviderProps> = ({ children }) => {
   // Charger la route depuis l'URL ou localStorage au démarrage
   useEffect(() => {
     if (isAuthenticated) {
-      const savedRoute = localStorage.getItem('ecoletech_current_route');
+      const savedRoute = SessionManager.getCurrentRoute();
       if (savedRoute && isValidRoute(savedRoute) && canAccess(savedRoute as RouteModule)) {
         setCurrentRoute(savedRoute as RouteModule);
       }
@@ -66,7 +67,7 @@ export const RouterProvider: React.FC<RouterProviderProps> = ({ children }) => {
   // Sauvegarder la route actuelle
   useEffect(() => {
     if (isAuthenticated) {
-      localStorage.setItem('ecoletech_current_route', currentRoute);
+      SessionManager.setCurrentRoute(currentRoute);
     }
   }, [currentRoute, isAuthenticated]);
 

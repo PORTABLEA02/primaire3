@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useAuth } from '../components/Auth/AuthProvider';
-import { supabase } from '../lib/supabase';
+import { SessionManager } from '../utils/sessionManager';
 import { ActivityLogService } from '../services/activityLogService';
 
 interface SessionSecurityConfig {
@@ -38,33 +38,22 @@ export const useSessionSecurity = (config: Partial<SessionSecurityConfig> = {}) 
 
     try {
       setIsCheckingSession(true);
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error('Erreur lors de la vérification de session:', error);
+      
+      const isValid = await SessionManager.isSessionValid();
+      if (!isValid) {
+        console.log('Session invalide détectée');
         return false;
       }
 
-      if (!session) {
-        console.log('Aucune session Supabase trouvée');
-        return false;
-      }
-
-      // Vérifier si le token expire bientôt
-      const expiresAt = session.expires_at;
-      if (expiresAt) {
-        const now = Math.floor(Date.now() / 1000);
-        const timeUntilExpiry = expiresAt - now;
-
-        // Si le token expire dans moins de 5 minutes, le rafraîchir
-        if (timeUntilExpiry < 300) {
-          console.log('Token expire bientôt, rafraîchissement...');
-          const refreshSuccess = await refreshSession();
-          
-          if (!refreshSuccess) {
-            console.log('Échec du rafraîchissement, session invalide');
-            return false;
-          }
+      // Vérifier si le token expire bientôt et le rafraîchir si nécessaire
+      const timeUntilExpiry = SessionManager.getTimeUntilExpiry();
+      if (timeUntilExpiry !== null && timeUntilExpiry < 300) {
+        console.log('Token expire bientôt, rafraîchissement...');
+        const refreshSuccess = await refreshSession();
+        
+        if (!refreshSuccess) {
+          console.log('Échec du rafraîchissement, session invalide');
+          return false;
         }
       }
 
@@ -139,6 +128,7 @@ export const useSessionSecurity = (config: Partial<SessionSecurityConfig> = {}) 
   // Étendre la session
   const extendSession = useCallback(async () => {
     updateActivity();
+    SessionManager.extendSession();
     setShowInactivityWarning(false);
     
     // Optionnel: rafraîchir le token Supabase
@@ -179,6 +169,7 @@ export const useSessionSecurity = (config: Partial<SessionSecurityConfig> = {}) 
     
     const handleActivity = () => {
       updateActivity();
+      SessionManager.updateActivity();
     };
 
     // Ajouter les écouteurs
@@ -207,9 +198,10 @@ export const useSessionSecurity = (config: Partial<SessionSecurityConfig> = {}) 
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        // Page redevient visible, vérifier la session
+        // Page redevient visible, vérifier la session et mettre à jour l'activité
         checkSupabaseSession();
         updateActivity();
+        SessionManager.updateActivity();
       }
     };
 
@@ -224,6 +216,7 @@ export const useSessionSecurity = (config: Partial<SessionSecurityConfig> = {}) 
     const handleOnline = () => {
       console.log('Connexion réseau rétablie, vérification de session...');
       checkSupabaseSession();
+      SessionManager.updateActivity();
     };
 
     window.addEventListener('online', handleOnline);

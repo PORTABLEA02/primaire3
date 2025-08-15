@@ -3,7 +3,8 @@ import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { User as UserType } from '../../types/User';
 import { School } from '../../types/School';
-import { SessionUtils } from '../../utils/sessionUtils';
+import { SessionManager } from '../../utils/sessionManager';
+import { ActivityLogService } from '../../services/activityLogService';
 
 interface AuthContextType {
   user: UserType | null;
@@ -41,9 +42,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionPersistence, setSessionPersistence] = useState<'local' | 'session'>('local');
 
   useEffect(() => {
-    // Vérifier la session existante
+    // Initialiser le gestionnaire de session
+    SessionManager.initialize();
+    
+    // Vérifier la session existante au démarrage
     checkSession();
 
     // Écouter les changements d'authentification
@@ -52,28 +57,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('Auth state change:', event, session?.user?.id);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Initialiser la session
-          SessionUtils.initializeSession();
-          SessionUtils.recordUserAction('login');
+          // Enregistrer la session
+          SessionManager.setSession(session, sessionPersistence);
           
-          // Utiliser setTimeout pour éviter le deadlock
-          setTimeout(() => {
-            loadUserProfile(session.user);
-          }, 0);
+          loadUserProfile(session.user);
         } else if (event === 'SIGNED_OUT') {
-          // Nettoyer la session
-          SessionUtils.cleanupSession();
+          // Nettoyer la session locale
+          SessionManager.clearSession();
           handleSignOut();
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Pour le rafraîchissement de token, mettre à jour l'utilisateur Supabase
+          // Mettre à jour la session stockée
+          SessionManager.updateSession(session);
           setSupabaseUser(session.user);
-          SessionUtils.recordUserAction('token_refresh');
           console.log('Token refreshed successfully');
         } else if (event === 'TOKEN_REFRESH_FAILED') {
-          // Le refresh token est invalide → obliger l'utilisateur à se reconnecter
+          // Token refresh échoué - nettoyer et déconnecter
           console.log('Session expirée, merci de vous reconnecter');
+          SessionManager.clearSession();
           setError('Votre session a expiré. Veuillez vous reconnecter.');
-          // Ne pas nettoyer immédiatement - laisser SessionExpiredModal gérer l'interaction utilisateur
         }
       }
     );
@@ -83,6 +84,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Vérifier la persistance de session au démarrage
+  useEffect(() => {
+    const savedSession = SessionManager.getStoredSession();
+    if (savedSession && !isAuthenticated) {
+      // Tenter de restaurer la session
+      restoreSession(savedSession);
+    }
+  }, []);
+
+  const restoreSession = async (sessionData: any) => {
+    try {
+      // Vérifier si la session est encore valide
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        // Session invalide, nettoyer
+        SessionManager.clearSession();
+        return;
+      }
+
+      // Session valide, charger le profil
+      await loadUserProfile(session.user);
+    } catch (error) {
+      console.error('Erreur lors de la restauration de session:', error);
+      SessionManager.clearSession();
+    }
+  };
   // Fonction pour rafraîchir manuellement la session
   const refreshSession = async (): Promise<boolean> => {
     try {
@@ -92,14 +120,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         console.error('Erreur lors du refresh de session:', error);
         setError('Session expirée, merci de vous reconnecter');
-        SessionUtils.cleanupSession();
+        SessionManager.clearSession();
         await handleSignOut();
         return false;
       }
 
       if (data.session?.user) {
+        SessionManager.updateSession(data.session);
         setSupabaseUser(data.session.user);
-        SessionUtils.recordUserAction('manual_refresh');
         console.log('Session refreshed manually');
         return true;
       }
@@ -108,14 +136,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Erreur lors du refresh manuel:', error);
       setError('Erreur lors du rafraîchissement de la session');
-      SessionUtils.cleanupSession();
+      SessionManager.clearSession();
       return false;
     }
   };
 
   // Fonction centralisée pour gérer la déconnexion
   const handleSignOut = () => {
-    SessionUtils.cleanupSession();
+    SessionManager.clearSession();
     setUser(null);
     setSupabaseUser(null);
     setUserSchool(null);
@@ -133,6 +161,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (session?.user) {
         await loadUserProfile(session.user);
       } else {
+        // Vérifier s'il y a une session stockée localement
+        const storedSession = SessionManager.getStoredSession();
+        if (storedSession) {
+          await restoreSession(storedSession);
+        }
       }
     } catch (error) {
       console.error('Erreur de vérification de session:', error);
@@ -254,11 +287,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(true);
       setError(null);
 
-      // Mettre à jour la dernière connexion
+      // Mettre à jour la dernière connexion et logger l'activité
       await supabase
         .from('user_profiles')
         .update({ last_login: new Date().toISOString() })
         .eq('id', supabaseUser.id);
+
+      // Logger la connexion
+      if (profile.school) {
+        await ActivityLogService.logActivity({
+          schoolId: profile.school.id,
+          userId: supabaseUser.id,
+          action: 'LOGIN',
+          entityType: 'auth',
+          level: 'success',
+          details: 'Connexion réussie'
+        });
+      }
 
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
@@ -270,6 +315,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
+
+      // Définir le type de persistance selon rememberMe
+      const persistence = rememberMe ? 'local' : 'session';
+      setSessionPersistence(persistence);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -293,6 +342,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.user) {
         await loadUserProfile(data.user);
+        
+        // Sauvegarder la session selon la préférence
+        if (data.session) {
+          SessionManager.setSession(data.session, persistence);
+        }
+        
         return true;
       }
 
@@ -334,9 +389,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       handleSignOut();
       
-      // Nettoyer le localStorage
-      localStorage.removeItem('ecoletech_current_route');
-      localStorage.removeItem('ecoletech_last_activity');
+      // Nettoyer toutes les données de session
+      SessionManager.clearSession();
     } catch (error: any) {
       console.error('Erreur lors de la déconnexion:', error);
       setError(error.message || 'Erreur de déconnexion');

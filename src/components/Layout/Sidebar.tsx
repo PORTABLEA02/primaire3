@@ -50,6 +50,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     return canAccess(item.id as RouteModule);
   });
 
+  // Fonction pour gérer la navigation avec fermeture automatique sur mobile
+  const handleNavigation = (module: RouteModule) => {
+    onModuleChange(module);
+    
+    // Fermer automatiquement le sidebar sur mobile après navigation
+    if (isMobile && !collapsed) {
+      onToggleCollapse();
+    }
+  };
   return (
     <div className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-30 ${
       isMobile 
@@ -99,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onModuleChange(item.id as RouteModule)}
+              onClick={() => handleNavigation(item.id as RouteModule)}
               className={`w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
                 isActive ? 'bg-blue-50 border-r-4 border-blue-600 text-blue-600' : 'text-gray-700'
               }`}

@@ -104,7 +104,7 @@ const AppContent: React.FC = () => {
             isMobile={isMobile}
           />
           
-          <main className="p-4 sm:p-6">
+          <main className="p-4 sm:p-6 min-h-screen">
             <NavigationManager />
           </main>
         </div>

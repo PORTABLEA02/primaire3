@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { X, BookOpen, Plus, Trash2, Edit, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, BookOpen, Plus, Trash2, Edit, Upload, Save, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import ImportButton from '../Import/ImportButton';
+import { useAuth } from '../Auth/AuthProvider';
+import { SubjectService } from '../../services/subjectService';
+import { ActivityLogService } from '../../services/activityLogService';
+import { useConfirmationContext } from '../../contexts/ConfirmationContext';
 
 interface AcademicLevelsModalProps {
   isOpen: boolean;
@@ -23,13 +27,21 @@ interface Subject {
   levels: string[];
   coefficient: number;
   description: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { userSchool, user } = useAuth();
+  const { confirm, notify } = useConfirmationContext();
   const [activeTab, setActiveTab] = useState<'levels' | 'subjects'>('levels');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // États pour les niveaux (données statiques pour l'instant)
   const [levels, setLevels] = useState<Level[]>([
     {
       id: '1',
@@ -96,65 +108,8 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
     }
   ]);
 
-  const [subjects, setSubjects] = useState<Subject[]>([
-    {
-      id: '1',
-      name: 'Français',
-      levels: ['CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'],
-      coefficient: 4,
-      description: 'Langue française, lecture, écriture, expression'
-    },
-    {
-      id: '2',
-      name: 'Mathématiques',
-      levels: ['CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'],
-      coefficient: 4,
-      description: 'Calcul, géométrie, résolution de problèmes'
-    },
-    {
-      id: '3',
-      name: 'Sciences',
-      levels: ['CE1', 'CE2', 'CM1', 'CM2'],
-      coefficient: 2,
-      description: 'Sciences naturelles, physique, chimie'
-    },
-    {
-      id: '4',
-      name: 'Histoire-Géographie',
-      levels: ['CE1', 'CE2', 'CM1', 'CM2'],
-      coefficient: 2,
-      description: 'Histoire du Mali et du monde, géographie'
-    },
-    {
-      id: '5',
-      name: 'Éducation Civique',
-      levels: ['CI', 'CP', 'CE1', 'CE2', 'CM1', 'CM2'],
-      coefficient: 1,
-      description: 'Citoyenneté, valeurs civiques et morales'
-    },
-    {
-      id: '6',
-      name: 'Anglais',
-      levels: ['CM1', 'CM2'],
-      coefficient: 2,
-      description: 'Langue anglaise de base'
-    },
-    {
-      id: '7',
-      name: 'Éveil',
-      levels: ['Maternelle'],
-      coefficient: 1,
-      description: 'Éveil sensoriel et cognitif'
-    },
-    {
-      id: '8',
-      name: 'Langage',
-      levels: ['Maternelle'],
-      coefficient: 1,
-      description: 'Développement du langage oral'
-    }
-  ]);
-
+  // États pour les matières (depuis la base de données)
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [showAddLevel, setShowAddLevel] = useState(false);
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [editingLevel, setEditingLevel] = useState<Level | null>(null);
@@ -175,6 +130,30 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
     coefficient: 1,
     description: ''
   });
+
+  // Charger les matières depuis la base de données
+  useEffect(() => {
+    if (isOpen && userSchool) {
+      loadSubjects();
+    }
+  }, [isOpen, userSchool]);
+
+  const loadSubjects = async () => {
+    if (!userSchool) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const subjectsData = await SubjectService.getSubjects(userSchool.id);
+      setSubjects(subjectsData);
+    } catch (error: any) {
+      console.error('Erreur lors du chargement des matières:', error);
+      setError(error.message || 'Erreur lors du chargement des matières');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddLevel = () => {
     if (newLevel.name && newLevel.description) {
@@ -198,20 +177,41 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
         annualFees: 350000
       });
       setShowAddLevel(false);
+      
+      notify({
+        title: 'Niveau ajouté',
+        message: `Le niveau "${level.name}" a été ajouté avec succès.`,
+        type: 'success',
+        autoClose: true
+      });
     }
   };
 
-  const handleAddSubject = () => {
-    if (newSubject.name && newSubject.description) {
-      const subject: Subject = {
-        id: Date.now().toString(),
+  const handleAddSubject = async () => {
+    if (!userSchool || !newSubject.name || !newSubject.description) {
+      notify({
+        title: 'Données incomplètes',
+        message: 'Veuillez remplir tous les champs obligatoires.',
+        type: 'warning'
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const subjectData = await SubjectService.createSubject({
+        schoolId: userSchool.id,
         name: newSubject.name,
-        levels: newSubject.levels || [],
+        description: newSubject.description,
         coefficient: newSubject.coefficient || 1,
-        description: newSubject.description
-      };
+        levels: newSubject.levels || []
+      });
+
+      // Ajouter à la liste locale
+      setSubjects(prev => [...prev, subjectData]);
       
-      setSubjects(prev => [...prev, subject]);
+      // Reset du formulaire
       setNewSubject({
         name: '',
         levels: [],
@@ -219,6 +219,127 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
         description: ''
       });
       setShowAddSubject(false);
+
+      // Logger l'activité
+      await ActivityLogService.logActivity({
+        schoolId: userSchool.id,
+        userId: user?.id,
+        action: 'CREATE_SUBJECT',
+        entityType: 'subject',
+        entityId: subjectData.id,
+        level: 'success',
+        details: `Nouvelle matière créée: ${newSubject.name}`
+      });
+
+      notify({
+        title: 'Matière ajoutée',
+        message: `La matière "${newSubject.name}" a été ajoutée avec succès.`,
+        type: 'success',
+        autoClose: true
+      });
+    } catch (error: any) {
+      console.error('Erreur lors de l\'ajout de la matière:', error);
+      notify({
+        title: 'Erreur d\'ajout',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateSubject = async (subjectId: string, updates: Partial<Subject>) => {
+    if (!userSchool) return;
+
+    try {
+      setLoading(true);
+
+      const updatedSubject = await SubjectService.updateSubject(subjectId, updates);
+      
+      // Mettre à jour la liste locale
+      setSubjects(prev => prev.map(s => s.id === subjectId ? updatedSubject : s));
+      setEditingSubject(null);
+
+      // Logger l'activité
+      await ActivityLogService.logActivity({
+        schoolId: userSchool.id,
+        userId: user?.id,
+        action: 'UPDATE_SUBJECT',
+        entityType: 'subject',
+        entityId: subjectId,
+        level: 'info',
+        details: `Matière mise à jour: ${updates.name || 'matière'}`
+      });
+
+      notify({
+        title: 'Matière mise à jour',
+        message: 'La matière a été mise à jour avec succès.',
+        type: 'success',
+        autoClose: true
+      });
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour:', error);
+      notify({
+        title: 'Erreur de mise à jour',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSubject = async (subjectId: string) => {
+    if (!userSchool) return;
+
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    const confirmed = await confirm({
+      title: 'Supprimer la matière',
+      message: `Êtes-vous sûr de vouloir supprimer "${subject.name}" ? Cette action est irréversible et supprimera toutes les notes associées.`,
+      type: 'danger',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+
+      await SubjectService.deleteSubject(subjectId);
+      
+      // Retirer de la liste locale
+      setSubjects(prev => prev.filter(s => s.id !== subjectId));
+
+      // Logger l'activité
+      await ActivityLogService.logActivity({
+        schoolId: userSchool.id,
+        userId: user?.id,
+        action: 'DELETE_SUBJECT',
+        entityType: 'subject',
+        entityId: subjectId,
+        level: 'warning',
+        details: `Matière supprimée: ${subject.name}`
+      });
+
+      notify({
+        title: 'Matière supprimée',
+        message: `"${subject.name}" a été supprimée avec succès.`,
+        type: 'success',
+        autoClose: true
+      });
+    } catch (error: any) {
+      console.error('Erreur lors de la suppression:', error);
+      notify({
+        title: 'Erreur de suppression',
+        message: `Erreur: ${error.message}`,
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,10 +349,32 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
     }
   };
 
-  const deleteSubject = (subjectId: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette matière ?')) {
-      setSubjects(prev => prev.filter(s => s.id !== subjectId));
-    }
+  const handleLevelToggleForSubject = (levelName: string) => {
+    setNewSubject(prev => ({
+      ...prev,
+      levels: prev.levels?.includes(levelName)
+        ? prev.levels.filter(l => l !== levelName)
+        : [...(prev.levels || []), levelName]
+    }));
+  };
+
+  const handleEditSubject = (subject: Subject) => {
+    setEditingSubject({ ...subject });
+  };
+
+  const handleSaveEditSubject = async () => {
+    if (!editingSubject) return;
+
+    await handleUpdateSubject(editingSubject.id, {
+      name: editingSubject.name,
+      description: editingSubject.description,
+      coefficient: editingSubject.coefficient,
+      levels: editingSubject.levels
+    });
+  };
+
+  const handleCancelEditSubject = () => {
+    setEditingSubject(null);
   };
 
   if (!isOpen) return null;
@@ -247,15 +390,24 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-800">Configuration Académique</h2>
-                <p className="text-gray-600">Gestion des niveaux et matières</p>
+                <p className="text-gray-600">Gestion des niveaux et matières - {userSchool?.name}</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={loadSubjects}
+                disabled={loading}
+                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -278,12 +430,22 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Matières
+              Matières ({subjects.length})
             </button>
           </div>
         </div>
 
         <div className="p-6">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <p className="text-red-700">{error}</p>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'levels' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
@@ -371,7 +533,8 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={handleAddLevel}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      disabled={!newLevel.name || !newLevel.description}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                     >
                       Ajouter
                     </button>
@@ -449,10 +612,12 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                   <ImportButton 
                     variant="secondary"
                     size="sm"
+                    onImportComplete={loadSubjects}
                   />
                   <button
                     onClick={() => setShowAddSubject(true)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                    disabled={loading}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
                   >
                     <Plus className="h-4 w-4" />
                     <span>Nouvelle Matière</span>
@@ -474,6 +639,7 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                         type="text"
                         value={newSubject.name}
                         onChange={(e) => setNewSubject(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Ex: Français, Mathématiques..."
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
@@ -500,6 +666,7 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                     <textarea
                       value={newSubject.description}
                       onChange={(e) => setNewSubject(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Description de la matière et de son contenu..."
                       rows={2}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -515,19 +682,7 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                           <input
                             type="checkbox"
                             checked={newSubject.levels?.includes(level.name) || false}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setNewSubject(prev => ({ 
-                                  ...prev, 
-                                  levels: [...(prev.levels || []), level.name] 
-                                }));
-                              } else {
-                                setNewSubject(prev => ({ 
-                                  ...prev, 
-                                  levels: (prev.levels || []).filter(l => l !== level.name) 
-                                }));
-                              }
-                            }}
+                            onChange={() => handleLevelToggleForSubject(level.name)}
                             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                           />
                           <span className="text-sm text-gray-700">{level.name}</span>
@@ -539,9 +694,20 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={handleAddSubject}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      disabled={loading || !newSubject.name || !newSubject.description}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
                     >
-                      Ajouter
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span>Ajout...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          <span>Ajouter</span>
+                        </>
+                      )}
                     </button>
                     <button
                       onClick={() => setShowAddSubject(false)}
@@ -554,64 +720,206 @@ const AcademicLevelsModal: React.FC<AcademicLevelsModalProps> = ({
               )}
 
               {/* Subjects List */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matière</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Niveaux</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coefficient</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {subjects.map((subject) => (
-                      <tr key={subject.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-medium text-gray-800">{subject.name}</p>
-                            <p className="text-sm text-gray-500">{subject.description}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {subject.levels.map(level => (
-                              <span key={level} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                                {level}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-medium text-gray-800">{subject.coefficient}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => setEditingSubject(subject)}
-                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteSubject(subject.id)}
-                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+              {loading && subjects.length === 0 ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 text-blue-600 mx-auto mb-4 animate-spin" />
+                  <p className="text-gray-600">Chargement des matières...</p>
+                </div>
+              ) : subjects.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matière</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Niveaux</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Coefficient</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Créée le</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {subjects.map((subject) => (
+                        <tr key={subject.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4">
+                            {editingSubject?.id === subject.id ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editingSubject.name}
+                                  onChange={(e) => setEditingSubject(prev => prev ? { ...prev, name: e.target.value } : null)}
+                                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
+                                />
+                                <textarea
+                                  value={editingSubject.description}
+                                  onChange={(e) => setEditingSubject(prev => prev ? { ...prev, description: e.target.value } : null)}
+                                  rows={2}
+                                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
+                                />
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="font-medium text-gray-800">{subject.name}</p>
+                                <p className="text-sm text-gray-500">{subject.description}</p>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {editingSubject?.id === subject.id ? (
+                              <div className="grid grid-cols-2 gap-1">
+                                {levels.map(level => (
+                                  <label key={level.id} className="flex items-center space-x-1 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={editingSubject.levels?.includes(level.name) || false}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setEditingSubject(prev => prev ? { 
+                                            ...prev, 
+                                            levels: [...(prev.levels || []), level.name] 
+                                          } : null);
+                                        } else {
+                                          setEditingSubject(prev => prev ? { 
+                                            ...prev, 
+                                            levels: (prev.levels || []).filter(l => l !== level.name) 
+                                          } : null);
+                                        }
+                                      }}
+                                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                    />
+                                    <span className="text-xs text-gray-700">{level.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {(subject.levels || []).map(level => (
+                                  <span key={level} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                                    {level}
+                                  </span>
+                                ))}
+                                {(!subject.levels || subject.levels.length === 0) && (
+                                  <span className="text-sm text-gray-500 italic">Aucun niveau</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            {editingSubject?.id === subject.id ? (
+                              <input
+                                type="number"
+                                min="1"
+                                max="5"
+                                value={editingSubject.coefficient}
+                                onChange={(e) => setEditingSubject(prev => prev ? { ...prev, coefficient: parseInt(e.target.value) || 1 } : null)}
+                                className="w-16 px-2 py-1 border border-gray-200 rounded text-sm"
+                              />
+                            ) : (
+                              <span className="font-medium text-gray-800">{subject.coefficient}</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {subject.created_at ? new Date(subject.created_at).toLocaleDateString('fr-FR') : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center space-x-2">
+                              {editingSubject?.id === subject.id ? (
+                                <>
+                                  <button
+                                    onClick={handleSaveEditSubject}
+                                    disabled={loading}
+                                    className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+                                  >
+                                    <Save className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEditSubject}
+                                    className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleEditSubject(subject)}
+                                    disabled={loading}
+                                    className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSubject(subject.id)}
+                                    disabled={loading}
+                                    className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-800 mb-2">Aucune matière configurée</h4>
+                  <p className="text-gray-600 mb-4">Commencez par ajouter les matières de votre programme scolaire</p>
+                  <button
+                    onClick={() => setShowAddSubject(true)}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 mx-auto"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span>Ajouter la Première Matière</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Informations sur le système éducatif béninois */}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-800 mb-3">Programme Officiel Béninois</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+                  <div>
+                    <p className="font-medium mb-2">Matières principales par niveau:</p>
+                    <ul className="space-y-1">
+                      <li>• <strong>Maternelle:</strong> Éveil, Langage, Graphisme, Motricité</li>
+                      <li>• <strong>CI-CP:</strong> Français (Coef. 4), Mathématiques (Coef. 4), Éveil Scientifique</li>
+                      <li>• <strong>CE1-CE2:</strong> + Histoire-Géographie, Sciences</li>
+                      <li>• <strong>CM1-CM2:</strong> + Anglais (Coef. 2)</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-2">Coefficients recommandés:</p>
+                    <ul className="space-y-1">
+                      <li>• <strong>Français:</strong> Coefficient 4 (matière principale)</li>
+                      <li>• <strong>Mathématiques:</strong> Coefficient 4 (matière principale)</li>
+                      <li>• <strong>Sciences/Histoire:</strong> Coefficient 2</li>
+                      <li>• <strong>Anglais:</strong> Coefficient 2 (CM1-CM2)</li>
+                      <li>• <strong>Autres matières:</strong> Coefficient 1</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         <div className="p-6 border-t border-gray-200">
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              {activeTab === 'subjects' && (
+                <span>
+                  {subjects.length} matière(s) configurée(s) • 
+                  Dernière mise à jour: {subjects.length > 0 && subjects[0].updated_at 
+                    ? new Date(subjects[0].updated_at).toLocaleDateString('fr-FR')
+                    : 'N/A'
+                  }
+                </span>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"

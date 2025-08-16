@@ -191,7 +191,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
         classId: teacher.assignedClass !== 'Disponible' ? 
           classes.find(c => c.name === teacher.assignedClass)?.id || '' : '',
         className: teacher.assignedClass !== 'Disponible' ? teacher.assignedClass : '',
-        subject: '' // Reset subject when teacher changes
+        subject: '' // Reset subject when teacher changes but keep subjects available
       }));
     }
   };
@@ -203,7 +203,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
         ...prev,
         classId,
         className: selectedClass.name,
-        subject: '' // Reset subject when class changes
+        subject: '' // Reset subject when class changes but keep subjects available
       }));
     }
   };
@@ -211,16 +211,18 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
   // Obtenir les matières disponibles selon l'enseignant et la classe sélectionnés
   const getAvailableSubjects = () => {
     const teacher = teachers.find(t => t.id === formData.teacherId);
-    const selectedClass = classes.find(c => c.id === formData.classId);
     
-    if (teacher && selectedClass) {
-      // Intersection des matières de l'enseignant et de la classe
-      return teacher.subjects.filter(subject => 
-        selectedClass.subjects.includes(subject)
-      );
+    if (teacher) {
+      // Si l'enseignant a une classe assignée, utiliser les matières de cette classe
+      if (teacher.assignedClass !== 'Disponible') {
+        const assignedClass = classes.find(c => c.name === teacher.assignedClass);
+        return assignedClass?.subjects || [];
+      }
+      // Si pas de classe assignée, retourner toutes les matières disponibles
+      return subjects.map(s => s.name) || [];
     }
     
-    return teacher?.subjects || selectedClass?.subjects || [];
+    return [];
   };
 
   const getSubjectColor = (subject: string) => {
@@ -315,7 +317,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
             {/* Classe (automatiquement sélectionnée si enseignant a une classe) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Classe *
+                Classe {formData.teacherId && teachers.find(t => t.id === formData.teacherId)?.assignedClass !== 'Disponible' ? '(Automatique)' : '*'}
               </label>
               <select
                 value={formData.classId}
@@ -338,6 +340,11 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
                   Classe automatiquement sélectionnée selon l'enseignant
                 </p>
               )}
+              {formData.teacherId && teachers.find(t => t.id === formData.teacherId)?.assignedClass === 'Disponible' && (
+                <p className="text-sm text-orange-600 mt-1">
+                  Cet enseignant n'a pas de classe assignée. Sélectionnez une classe manuellement.
+                </p>
+              )}
             </div>
           </div>
 
@@ -355,10 +362,10 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
               <select
                 value={formData.subject}
                 onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                disabled={availableSubjects.length === 0}
+                disabled={!formData.teacherId}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.subject ? 'border-red-300' : 'border-gray-200'
-                } ${availableSubjects.length === 0 ? 'bg-gray-100' : ''}`}
+                } ${!formData.teacherId ? 'bg-gray-100' : ''}`}
               >
                 <option value="">Choisir une matière</option>
                 {availableSubjects.map(subject => (
@@ -366,9 +373,9 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({
                 ))}
               </select>
               {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
-              {availableSubjects.length === 0 && formData.teacherId && (
+              {!formData.teacherId && (
                 <p className="text-sm text-gray-500 mt-1">
-                  Sélectionnez d'abord un enseignant et une classe
+                  Sélectionnez d'abord un enseignant
                 </p>
               )}
             </div>
